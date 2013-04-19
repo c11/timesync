@@ -1,0 +1,238 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" 
+		 xmlns:parsley="http://www.spicefactory.org/parsley"
+		 width="400" height="300">
+	<fx:Declarations>
+		<parsley:Configure/>
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import mx.charts.ChartItem;
+			import mx.charts.HitData;
+			import mx.charts.series.items.PlotSeriesItem;
+			import mx.collections.ArrayCollection;
+			import mx.events.FlexEvent;
+			import mx.graphics.IFill;
+			import mx.graphics.SolidColor;
+			
+			import org.larse.model.GlobalModel;
+			import org.larse.model.PlotModel;
+			import org.larse.model.SpectralPropertyModel;
+			import org.larse.tsclass.PlotSpectral;
+			import org.larse.tsclass.SpectralIndex;
+			import org.larse.vos.SpectralProperty;
+			
+			[Bindable]
+			public var plotSpectrals:ArrayCollection;
+			
+			[Bindable]
+			public var vertexSpectrals:ArrayCollection;
+
+			private var _spectralIndex:String;
+			
+			[Bindable]
+			public function get spectralIndex():String {
+				return _spectralIndex;
+			}
+			
+			public function set spectralIndex(value:String):void {
+				_spectralIndex = value;
+				spectralProperty = spectralPropertyModel.getSpectralProperty(_spectralIndex);
+				series.yField = _spectralIndex;
+				trace("retrieve spectral property " + value);
+			}
+			
+			[Bindable]
+			private var spectralProperty:SpectralProperty;
+			
+			
+			[Inject][Bindable]
+			public var spectralPropertyModel:SpectralPropertyModel;
+
+			[Inject][Bindable]
+			public var global:GlobalModel;
+			
+			private var isZoom:Boolean = false; //is this a zooming action
+			private var dragStart:Point; //zoom box start location
+			private var dragEnd:Point; //zoom box end location
+
+			
+			private function tcColor(item:ChartItem, index:Number):IFill {
+				var ps:PlotSpectral = item.item as PlotSpectral;
+				if (ps == null) {
+					trace("plot spectral is null");
+					return null;
+				}
+				
+				var tcbs:SpectralProperty = spectralPropertyModel.getSpectralProperty(SpectralIndex.BRIGHTNESS);
+				var tcgs:SpectralProperty = spectralPropertyModel.getSpectralProperty(SpectralIndex.GREENNESS);
+				var tcws:SpectralProperty = spectralPropertyModel.getSpectralProperty(SpectralIndex.WETNESS);
+				
+//				var r:int = int((ps.brightness - tcbs.spectral_mean + 2*tcbs.spectral_std)/(4*tcbs.spectral_std)*255);
+//				var g:int = int((ps.greenness - tcgs.spectral_mean + 2*tcgs.spectral_std)/(4*tcgs.spectral_std)*255);
+//				var b:int = int((ps.wetness - tcws.spectral_mean + 2*tcws.spectral_std)/(4*tcws.spectral_std)*255);
+				var r:int = int((ps.brightness - tcbs.spectral_min)/tcbs.range*255);
+				var g:int = int((ps.greenness - tcgs.spectral_min)/tcgs.range*255);
+				var b:int = int((ps.wetness - tcws.spectral_min)/tcws.range*255);
+				
+				r = r < 0 ? 0 : r;
+				r = r > 255 ? 255 : r;
+				
+				g = g < 0 ? 0 : g;
+				g = g > 255 ? 255 : g;
+				
+				b = b < 0 ? 0 : b;
+				b = b > 255 ? 255 : b;
+				
+				return new SolidColor(r*65536+g*256+b);
+			}
+			
+			private function vertexColor(item:ChartItem, index:Number):IFill {
+				return new SolidColor(255*65536);
+			}
+			
+			public function resetScale_Handler(action:String):void
+			{
+				if (action == "Plot Stretch") {
+					//haxis.minimum = 1980; 
+					//haxis.maximum = 2012; 
+					vaxis.minimum = NaN; 
+					vaxis.maximum = NaN;
+				}
+				else if (action == "Global Stretch") {
+					//haxis.minimum = 1980; 
+					//haxis.maximum = 2012; 
+					vaxis.minimum = spectralProperty.spectral_min; 
+					vaxis.maximum = spectralProperty.spectral_max;
+				}
+			}
+			
+			protected function plotchart_mouseDownHandler(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				trace("mouse down");
+				//if (event.ctrlKey)
+					isZoom = true;
+				dragStart = new Point(plotchart.mouseX, plotchart.mouseY);
+			}
+			
+			protected function plotchart_mouseUpHandler(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				trace("mouse up");
+				trace(plotchart.selectedChartItems.length);
+				
+				plotchart.clearSelection();
+					
+				dragEnd = new Point(plotchart.mouseX, plotchart.mouseY);
+
+				var TL:Point = new Point();  // top-left point
+				var BR:Point = new Point();  // bottom-right point
+				
+				if (dragStart == null)
+					return;
+				
+				if(dragStart.x < dragEnd.x){
+					TL.x = dragStart.x;
+					BR.x = dragEnd.x;
+				}
+				else{
+					TL.x = dragEnd.x;
+					BR.x = dragStart.x;
+				}
+				if(dragStart.y < dragEnd.y){
+					TL.y = dragStart.y;
+					BR.y = dragEnd.y;
+				}
+				else{
+					TL.y = dragEnd.y;
+					BR.y = dragStart.y;
+				}
+				
+				//if zoom box is less than 5 pixel height
+				if (Math.abs(TL.y-BR.y) <=5)
+					return;
+				
+				// prevents the zoom window from going off the canvas
+				if(TL.x < 0) TL.x = 0;
+				if(BR.x > chartCanvas.width-1) BR.x = chartCanvas.width-1;
+				if(TL.y < 0) TL.y = 0;
+				if(BR.y > chartCanvas.height-1) BR.y = chartCanvas.height-1;
+				
+				if (isZoom) {
+					// converts the drag coordinates into axis data points
+					var chartValStart:Array = chartCanvas.localToData(dragStart);
+					var chartValEnd:Array = chartCanvas.localToData(dragEnd);
+					
+					// sets the new maximum and minimum for both axes
+					//haxis.minimum = (chartValStart[0] < chartValEnd[0]) ? chartValStart[0] : chartValEnd[0];
+					//haxis.maximum = (chartValStart[0] < chartValEnd[0]) ? chartValEnd[0] : chartValStart[0];
+					vaxis.minimum = (chartValStart[1] < chartValEnd[1]) ? chartValStart[1] : chartValEnd[1];
+					vaxis.maximum = (chartValStart[1] < chartValEnd[1]) ? chartValEnd[1] : chartValStart[1];
+				}
+				
+				isZoom = false;
+				
+				dragStart = null;
+				dragEnd = null;
+			}
+			
+			private function tipFunction(hd:HitData):String {
+				return hd.item.sequence + ": " + hd.item.year;
+			}
+			
+		]]>
+	</fx:Script>
+	<mx:PlotChart id="plotchart" left="5" right="5" top="5" bottom="5"
+				  interactionMode="mouse"
+				  selectionMode="multiple"
+				  showDataTips="true"
+				  dataTipMode="single"
+				  dataTipFunction="tipFunction"
+				  mouseDown="plotchart_mouseDownHandler(event)"
+				  mouseUp="plotchart_mouseUpHandler(event)"
+				  >
+		<mx:annotationElements>
+			<mx:CartesianDataCanvas id="chartCanvas"/>
+		</mx:annotationElements>
+		
+		<mx:horizontalAxis>
+			<mx:LinearAxis id="haxis" minimum="{global.min_year-1}" maximum="{global.max_year+1}"/>
+		</mx:horizontalAxis>
+		
+		<mx:verticalAxis>
+			<!--
+			<mx:LinearAxis id="vaxis" minimum="{spectralProperty.spectral_min}" 
+						   maximum="{spectralProperty.spectral_max}"/>
+			-->
+			<mx:LinearAxis id="vaxis" minimum="NaN" 
+						   maximum="NaN"/>
+		</mx:verticalAxis>
+		
+		<mx:series>
+			<mx:PlotSeries id="series" displayName="{spectralIndex}"
+						   dataProvider="{plotSpectrals}"
+						   xField="imageDateAsNumber" 
+						   yField="{spectralIndex}"
+						   fillFunction="tcColor"
+						   itemRenderer="mx.charts.renderers.CircleItemRenderer"
+						   />
+			<mx:LineSeries id="verts" displayName="{spectralIndex}"
+						   dataProvider="{vertexSpectrals}"
+						   xField="imageDateAsNumber" 
+						   yField="{spectralIndex}"
+						   itemRenderer="org.larse.renderer.SpectralCircleItemRenderer"
+						   adjustedRadius="5"
+						   fillFunction="tcColor"
+						   visible="{global.overlaySegment}"
+						   >
+					<mx:stroke>
+						<s:SolidColorStroke color="0xff0000" weight="3"/>
+					</mx:stroke>
+				</mx:LineSeries>
+		</mx:series>
+	</mx:PlotChart>
+</s:Group>

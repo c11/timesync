@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Panel xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx"
+		 xmlns:parsley="http://www.spicefactory.org/parsley"
+		 width="400" height="300">
+	<fx:Declarations>
+		<parsley:Configure/>
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import mx.collections.ArrayCollection;
+			import mx.events.FlexEvent;
+			
+			import org.larse.model.ImageListModel;
+			import org.larse.renderer.TsDataGridItemRender;
+			import org.larse.vos.ImageList;
+			import org.larse.vos.Neighbor;
+			
+			import spark.skins.spark.DefaultGridItemRenderer;
+			
+			[Bindable]
+			public var neighbors:ArrayCollection = new ArrayCollection();
+
+			[Inject]
+			public var imagelistModel:ImageListModel;
+			
+			public function deleteNeighbor():void {
+				if (neighborDG.selectedIndex>=0)
+					neighbors.removeItemAt(neighbors.getItemIndex(neighborDG.selectedItem));
+			}
+			
+			public function buildYear(event:FlexEvent):void {
+				var dic:Dictionary = new Dictionary();
+				for each (var im:ImageList in imagelistModel.imageList) {
+					dic[im.year] = im.year;
+				}
+				var unique:ArrayCollection = new ArrayCollection();
+				for each (var y:int in dic) {
+					unique.addItem(y);
+				}
+				event.target.dataProvider = unique;
+			}
+			
+			private function renderFunction(item:Object, column:GridColumn):ClassFactory {
+				var v:Neighbor = item as Neighbor;
+				if (v==null || v.complete)
+					return new ClassFactory(DefaultGridItemRenderer);
+				else
+					return new ClassFactory(TsDataGridItemRender);
+			}
+		]]>
+	</fx:Script>
+	<s:DataGrid id="neighborDG" width="100%" height="100%"
+				dataProvider="{neighbors}"
+				sortableColumns="true"
+				editable="true" >
+		<s:columns>
+			<s:ArrayList>
+				<s:GridColumn dataField="image_year" 
+							  headerText="Year"
+							  itemRendererFunction="renderFunction"
+							  sortDescending="false"
+							  width="60">
+					<s:itemEditor>
+						<fx:Component>
+							<s:GridItemEditor>
+								<fx:Script>
+									<![CDATA[
+										import org.larse.vos.Neighbor;
+										/**
+										 * data field
+										 */
+										override public function save():Boolean {
+											var v:Neighbor = data as Neighbor;
+											if (cmbYear.selectedItem!=null) {
+												if (v.image_year != cmbYear.selectedItem) 
+													v.isDirty = true;
+												
+												v.image_year = cmbYear.selectedItem;
+											}
+											else {
+												if (v.image_year != 0) {
+													v.image_year = 0;
+													v.isDirty = true;
+												}
+											}
+											return true;
+										}
+										
+										override public function set data(value:Object):void
+										{
+											super.data = value;
+											var v:Neighbor = data as Neighbor;
+											cmbYear.selectedItem = v.image_year;
+										}
+										
+										/**
+										 * value field
+										 */
+										override public function set value(newValue:Object):void {
+											if (newValue == null)
+												return;
+											cmbYear.selectedItem = newValue;
+										}
+										
+										override public function get value():Object {
+											if (cmbYear.selectedItem != null)
+												return cmbYear.selectedItem;
+											else
+												return 0;
+										}
+									]]>
+								</fx:Script>
+								<s:DropDownList id="cmbYear" width="65" labelField="year" 
+											initialize="outerDocument.buildYear(event)" />
+							</s:GridItemEditor>
+						</fx:Component>
+					</s:itemEditor>
+					
+				</s:GridColumn>
+				<s:GridColumn dataField="change_process" 
+							  headerText="Change Process"
+							  itemRendererFunction="renderFunction"
+							  itemEditor="org.larse.components.NeighborChangeProcessEditor"/>
+			</s:ArrayList>
+		</s:columns>
+		<s:typicalItem>
+			<fx:Object image_year="1984" 
+					   dominant_landuse="Change Process" />
+		</s:typicalItem>
+	</s:DataGrid>	
+</s:Panel>
+

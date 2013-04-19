@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:GridItemEditor xmlns:fx="http://ns.adobe.com/mxml/2009" 
+				  xmlns:s="library://ns.adobe.com/flex/spark" 
+				  xmlns:mx="library://ns.adobe.com/flex/mx"
+				  xmlns:parsley="http://www.spicefactory.org/parsley"
+				  depth="99"
+				  width="388" height="475">
+	<fx:Declarations>
+		<!--
+		<s:RadioButtonGroup id="radiogroup"/>
+		-->
+		<s:RadioButtonGroup id="radiogroupPatch"/>
+		<s:RadioButtonGroup id="radiogroupMagnitude"/>
+		<parsley:Configure/>
+	</fx:Declarations>
+	
+	<fx:Metadata>
+		[Event(name="plot_modified",type="org.larse.events.PlotEvent")]
+		[ManagedEvents("plot_modified")]
+	</fx:Metadata>
+	
+	<fx:Script>
+		<![CDATA[
+			import mx.collections.ArrayCollection;
+			import mx.events.FlexEvent;
+			
+			import org.larse.events.PlotEvent;
+			import org.larse.tsclass.TsSegment;
+			
+			import spark.events.IndexChangeEvent;
+			
+			/**
+			 * data field
+			 */
+			override public function save():Boolean {
+				var v:TsSegment = data as TsSegment;
+				if (process.selectedItem!=null)
+					v.changeProcess = process.selectedItem;
+				else
+					v.changeProcess = null;
+
+				var num:int = 0;
+				//get patch size
+				v.patch_size = 0;
+				if (radiogroupPatch.selectedValue != null) {
+					num = parseInt(radiogroupPatch.selectedValue.toString());
+					v.patch_size = num;
+				}
+				
+				num = 0;
+				//get relative magnitude
+				v.relative_magnitude = 0;
+				if (radiogroupMagnitude.selectedValue != null) {
+					num = parseInt(radiogroupMagnitude.selectedValue.toString());
+					v.relative_magnitude = num;
+				}
+				
+				this.dispatchEvent(new PlotEvent(PlotEvent.PLOT_MODIFIED));
+				
+				return true;
+			}
+			
+			override public function set data(value:Object):void
+			{
+				super.data = value;
+				var v:TsSegment = data as TsSegment;
+				
+				radiogroupPatch.selectedValue = v.patch_size;
+				radiogroupMagnitude.selectedValue = v.relative_magnitude;
+			}
+
+
+			/**
+			 * value field
+			 */
+			override public function set value(newValue:Object):void {
+				if (newValue == null)
+					return;
+				process.selectedItem = newValue;
+				updateProcessRule();
+			}
+			
+			override public function get value():Object {
+				if (process.selectedItem != null)
+					return process.selectedItem;
+				else
+					return null;
+			}
+			
+			protected function process_changeHandler(event:IndexChangeEvent):void {
+				updateProcessRule();
+			}
+			
+			private function updateProcessRule():void{
+				//check to see if selected agent is disturbance
+				var enable:Boolean = false;
+				
+				if (process.selectedItem == "Stable" 
+					|| process.selectedItem == "Recovery" 
+					|| process.selectedItem == "Other non-disturbance") {
+					enable = false;
+					radiogroupPatch.selectedValue = null;
+					radiogroupMagnitude.selectedValue = null;
+				}
+				else {
+					enable = true;
+				}
+				
+				groupPatch.enabled = enable;
+				groupMagnitude.enabled = enable;
+			}
+			
+		]]>
+	</fx:Script>
+	<s:Rect id="bgRect" top="1" left="1" bottom="1" right="1">
+		<s:fill>
+			<s:SolidColor id="bgFill" color="0xFFFFFF" />
+		</s:fill>
+	</s:Rect>
+	<s:PopUpAnchor displayPopUp="true">
+		<s:BorderContainer>
+			<s:VGroup>
+				<s:VGroup left="5" right="5" top="5" 
+						  paddingBottom="5" paddingLeft="5" 
+						  paddingRight="5" paddingTop="5">
+					<s:DropDownList id="process" width="175" change="process_changeHandler(event)">
+						<s:dataProvider>
+							<s:ArrayList>
+								<fx:String>Stable</fx:String>
+								<fx:String>Recovery</fx:String>			
+								<fx:String>Harvest</fx:String>
+								<fx:String>Fire</fx:String>
+								<fx:String>Stress</fx:String>
+								<fx:String>Site-preparation Fire</fx:String>
+								<fx:String>Delay</fx:String>
+								<fx:String>Mechanical</fx:String>
+								<fx:String>Other disturbance</fx:String>
+								<fx:String>Wind</fx:String>
+								<fx:String>Water</fx:String>
+								<fx:String>Debris</fx:String>
+								<fx:String>Volcano</fx:String>
+								<fx:String>Other non-disturbance</fx:String>
+							</s:ArrayList>
+							</s:dataProvider>
+						</s:DropDownList>
+				</s:VGroup>
+				<!--
+				<s:VGroup width="100%" paddingBottom="5" paddingLeft="5" paddingRight="5" paddingTop="5">
+					<s:Label fontWeight="bold" text="Confidence"/>
+					<s:HGroup width="60%" horizontalAlign="center" textAlign="center">
+						<s:RadioButton label="High" groupName="radiogroup"/>
+						<s:RadioButton label="Medium" groupName="radiogroup"/>
+						<s:RadioButton label="Low" groupName="radiogroup"/>
+					</s:HGroup>
+				</s:VGroup>
+				-->
+				<s:VGroup id="groupPatch" enabled="false" width="100%" paddingBottom="5" paddingLeft="5" paddingRight="5" paddingTop="5">
+					<s:Label fontWeight="bold" text="Patch Size"/>
+					<s:HGroup width="60%" horizontalAlign="center" textAlign="center"
+							  toolTip="For disturbance segments, estimate size of whole disturbance patch.">
+						<s:RadioButton value="1" label="&lt; 5 pixels" groupName="radiogroupPatch"/>
+						<s:RadioButton value="2" label="5-11 pixels" groupName="radiogroupPatch"/>
+						<s:RadioButton value="3" label="> 11 pixels" groupName="radiogroupPatch"/>
+					</s:HGroup>
+				</s:VGroup>
+				<s:VGroup id="groupMagnitude" enabled="false" width="100%" paddingBottom="5" paddingLeft="5" paddingRight="5" paddingTop="5">
+					<s:Label fontWeight="bold" text="Relative Magnitude"/>
+					<s:HGroup width="60%" horizontalAlign="center" textAlign="center" 
+							  toolTip="For disturbance segments, estimate relative magnitude, as one of three classes: low, medium, high, as 1/3, 2/3, and all of the canopy removed or killed, respectively.">
+						<s:RadioButton value="3" label="High" groupName="radiogroupMagnitude"/>
+						<s:RadioButton value="2" label="Medium" groupName="radiogroupMagnitude"/>
+						<s:RadioButton value="1" label="Low" groupName="radiogroupMagnitude"/>
+					</s:HGroup>
+				</s:VGroup>
+			</s:VGroup>
+		</s:BorderContainer>
+	</s:PopUpAnchor>
+</s:GridItemEditor>

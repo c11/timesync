@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:ComboBoxGridItemEditor xmlns:fx="http://ns.adobe.com/mxml/2009" 
+						  xmlns:s="library://ns.adobe.com/flex/spark" 
+						  xmlns:mx="library://ns.adobe.com/flex/mx" 
+						  creationComplete="onCreationComplete(event)"
+						  width="400" height="300">
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	<fx:Script>
+		<![CDATA[
+			import mx.events.FlexEvent;
+			
+			protected function onCreationComplete(event:FlexEvent):void
+			{
+				this.comboBox.textInput.editable = false;
+			}
+		]]>
+	</fx:Script>
+	
+	<s:dataProvider>
+		<s:ArrayList>
+			<fx:String>Stable</fx:String>
+			<fx:String>Recovery</fx:String>			
+			<fx:String>Harvest</fx:String>
+			<fx:String>Fire</fx:String>
+			<fx:String>Stress</fx:String>
+			<fx:String>Delay</fx:String>
+			<fx:String>Mechanical</fx:String>
+			<fx:String>Other disturbance</fx:String>
+			<fx:String>Wind</fx:String>
+			<fx:String>Water</fx:String>
+			<fx:String>Debris</fx:String>
+			<fx:String>Volcano</fx:String>
+			<fx:String>Other non-disturbance</fx:String>
+		</s:ArrayList>
+	</s:dataProvider>
+</s:ComboBoxGridItemEditor>

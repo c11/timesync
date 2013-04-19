@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Panel xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx"
+		 skinClass="org.larse.skin.TsPanelSkin"
+		 width="400" height="300">
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import org.larse.vos.Plot;
+			
+			private var _plot:Plot = null;
+			
+			[Bindable]
+			public function get plot():Plot {
+				if (_plot) {
+					var unc:uint = this.get_uncertainty();
+					if (_plot.uncertainty != unc) {
+						_plot.uncertainty = unc;
+						_plot.isModified = true;
+					}
+				}
+				return _plot;
+			}
+			
+			public function set plot(value:Plot):void {
+				_plot = value;
+				this.set_uncertainty(_plot.uncertainty);
+			}
+			
+			public function get_uncertainty():uint {
+				var unc:uint = Plot.UNCERTAINTY_NONE;
+				unc = ckVertex.selected ? unc | Plot.UNCERTAINTY_VERT : unc;
+				unc = ckDisturbance.selected ? unc | Plot.UNCERTAINTY_DIST : unc;
+				unc = ckCause.selected ? unc | Plot.UNCERTAINTY_AGNT : unc;
+				unc = ckLandUse.selected ? unc | Plot.UNCERTAINTY_LDLU : unc;
+				unc = ckLandUseChange.selected ? unc | Plot.UNCERTAINTY_DTLU : unc;
+				return unc;
+			}
+
+			public function set_uncertainty(value:uint):void {
+				ckVertex.selected = (value & Plot.UNCERTAINTY_VERT) == Plot.UNCERTAINTY_VERT;
+				ckDisturbance.selected = (value & Plot.UNCERTAINTY_DIST) == Plot.UNCERTAINTY_DIST;
+				ckCause.selected = (value & Plot.UNCERTAINTY_AGNT) == Plot.UNCERTAINTY_AGNT;
+				ckLandUse.selected = (value & Plot.UNCERTAINTY_LDLU) == Plot.UNCERTAINTY_LDLU;
+				ckLandUseChange.selected = (value & Plot.UNCERTAINTY_DTLU) == Plot.UNCERTAINTY_DTLU;
+			}
+		
+		]]>
+	</fx:Script>
+	
+	<s:VGroup width="100%" height="100%" 
+			  paddingLeft="5" paddingRight="5"
+			  paddingTop="5" paddingBottom="5">
+		<!--
+		<s:CheckBox label="Graphic Example" selected="@{plot.isExample}"/>
+		-->
+		<s:HGroup width="100%" height="100%">
+			<s:VGroup width="125">
+				<s:Label fontWeight="bold" text="Uncertainty" toolTip="Check any boxes below relevant to where you have uncertainty at any time during the trajectory."/>
+				<s:CheckBox id="ckVertex" label="Vertex" toolTip="1. If you are uncertain that the actual vertex year for any vertex associated with a disturbance segment (both start and end vertices)  is within one year of the vertex year you selected.&#13; 2. If you are uncertain about whether a disturbance actually happened you will check that box, and do not need to check this box for that case."/>
+				<s:CheckBox id="ckDisturbance" label="Disturbance" toolTip="If you are uncertain that one of the disturbances you declared is actually a real disturbance."/>
+				<s:CheckBox id="ckCause" label="Causal Agent" toolTip="1. This is for disturbances only, and to be used if you are uncertain about the causal agent associated with any declared disturbance.&#13; 2. If you chose Other Disturbance you should enter a comment in the comments box, rather than placing a check in the Causal Agent box."/>
+				<s:CheckBox id="ckLandUse" label="Land Use" toolTip="If you are uncertain about the land use label for any vertex."/>
+				<s:CheckBox id="ckLandUseChange" label="Land Use Change" toolTip="1. If you are uncertain whether a land use change occurred.&#13; 2. You may or may not have declared a land use change in your trajectory interpretation."/>
+			</s:VGroup>
+			<s:BorderContainer width="100%" height="100%" borderStyle="solid" borderColor="blue">
+				<s:RichEditableText width="100%" height="100%" text="@{plot.comment}"/>
+			</s:BorderContainer>
+		</s:HGroup>
+	</s:VGroup>	
+</s:Panel>

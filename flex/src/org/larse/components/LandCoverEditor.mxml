@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:GridItemEditor xmlns:fx="http://ns.adobe.com/mxml/2009" 
+				  xmlns:s="library://ns.adobe.com/flex/spark" 
+				  xmlns:mx="library://ns.adobe.com/flex/mx"
+				  depth="99"
+				  width="388" height="350">
+	<fx:Declarations>
+		<s:RadioButtonGroup id="radiogroup"/>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import mx.collections.ArrayCollection;
+			import mx.events.FlexEvent;
+			
+			import org.larse.tsclass.TsLuLc;
+			import org.larse.vos.Vertex;
+			
+			import spark.events.IndexChangeEvent;
+			
+			private var lus:Array = ["Trees", 
+				"Shrubs", 
+				"Herbaceous",
+				"Impervious",
+				"Barren",
+				"Water",
+				"Snow/ice"];
+			
+			[Bindable]
+			public var land_covers:ArrayCollection;
+			
+			protected function initData(event:FlexEvent):void
+			{
+				land_covers = new ArrayCollection();
+				for each (var s:String in lus) {
+					land_covers.addItem(new TsLuLc(s));
+				}
+			}			
+			
+			protected function onDominantChange(event:IndexChangeEvent):void
+			{
+				for each (var o:TsLuLc in land_covers) {
+					if (o == dominant.selectedItem) {
+						o.isDominant = true;
+						o.isSelected = false;
+					}
+					else {
+						o.isDominant = false;
+					}
+				}
+			}
+			
+			/**
+			 * data field
+			 */
+			override public function save():Boolean {
+				var v:Vertex = data as Vertex;
+				if (dominant.selectedItem!=null)
+					v.dominant_landcover = dominant.selectedItem.label;
+				else
+					v.dominant_landcover = null;
+				
+				v.dominant_landcover_over50 = d50.selected ? 1 : 0;
+				if (radiogroup.selectedValue !=null)
+					v.landcover_confidence = radiogroup.selectedValue.toString();
+				v.other_landcover = otherLandCover;
+				trace(otherLandCover);
+				return true;
+			}
+			
+			override public function set data(value:Object):void
+			{
+				super.data = value;
+				var v:Vertex = data as Vertex;
+				
+				d50.selected = v.dominant_landcover_over50 == 1;
+				radiogroup.selectedValue = v.landcover_confidence;
+				otherLandCover = v.other_landcover;
+			}
+
+			private function get otherLandCover():String {
+				var olu:String = "";
+				var cnt:int = 0;
+				for each (var lu:TsLuLc in land_covers) {
+					if (lu.isSelected) {
+						if (cnt++ > 0)
+							olu += lu.label;
+						else
+							olu += lu.label+",";
+					}
+				}
+				return olu;
+			}
+
+			private function set otherLandCover(value:String):void {
+				if (value==null || value.length==0)
+					return;
+
+				clearOtherLandUse();
+				
+				for each (var s:String in value.split(",")) {
+					for each (var lu:TsLuLc in land_covers) {
+						if (s == lu.label) {
+							lu.isSelected = true;
+							break;
+						}
+					}
+				}
+			}
+			
+			private function clearOtherLandUse():void {
+				for each (var lu:TsLuLc in land_covers) {
+					lu.isSelected = false;
+				}				
+			}			
+			/**
+			 * value field
+			 */
+			override public function set value(newValue:Object):void {
+				if (newValue == null)
+					return;
+				
+				for each (var lu:TsLuLc in land_covers) {
+					if (lu.label == newValue.toString()) {
+						dominant.selectedItem = lu;
+						lu.isDominant = true;
+						lu.isSelected = false;
+					}
+				}
+			}
+			
+			override public function get value():Object {
+				if (dominant.selectedItem != null)
+					return dominant.selectedItem.label;
+				else
+					return null;
+			}
+		]]>
+	</fx:Script>
+	<s:Rect id="bgRect" top="1" left="1" bottom="1" right="1">
+		<s:fill>
+			<s:SolidColor id="bgFill" color="0xFFFFFF" />
+		</s:fill>
+	</s:Rect>
+	<s:PopUpAnchor displayPopUp="true">
+		<s:BorderContainer>
+			<s:VGroup>
+				<s:VGroup left="5" right="5" top="5" 
+						  paddingBottom="5" paddingLeft="5" 
+						  paddingRight="5" paddingTop="5">
+					<s:Label fontWeight="bold" 
+							 paddingTop="4" 
+							 text="Dominant Land Cover"/>
+					<s:DropDownList id="dominant" width="175"
+									creationComplete="initData(event)"
+									dataProvider="{land_covers}"
+									change="onDominantChange(event)"/>
+					<s:CheckBox id="d50" label="is dominant >50%?"/>
+				</s:VGroup>
+				<s:VGroup width="100%" paddingBottom="5" paddingLeft="5" paddingRight="5" paddingTop="5">
+					<s:Label fontWeight="bold" text="Other Land Cover"/>
+					<s:List id="other" width="100%" height="142"
+							dataProvider="{land_covers}"
+							itemRenderer="org.larse.renderer.CheckBoxListRenderer"/>
+				</s:VGroup>
+				<s:VGroup width="100%" paddingBottom="5" paddingLeft="5" paddingRight="5" paddingTop="5">
+					<s:Label fontWeight="bold" text="Confidence"/>
+					<s:HGroup width="60%" horizontalAlign="center" textAlign="center">
+						<s:RadioButton label="High" groupName="radiogroup"/>
+						<s:RadioButton label="Medium" groupName="radiogroup"/>
+						<s:RadioButton label="Low" groupName="radiogroup"/>
+					</s:HGroup>
+				</s:VGroup>
+			</s:VGroup>
+		</s:BorderContainer>
+	</s:PopUpAnchor>
+</s:GridItemEditor>

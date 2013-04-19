@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:TileGroup xmlns:fx="http://ns.adobe.com/mxml/2009" 
+			 xmlns:s="library://ns.adobe.com/flex/spark" 
+			 xmlns:mx="library://ns.adobe.com/flex/mx" 
+			 width="117" height="117"
+			 horizontalAlign="center"
+			 verticalAlign="middle"
+			 horizontalGap="3"
+			 verticalGap="3"
+			 paddingLeft="3"
+			 paddingTop="3"
+			 paddingRight="3"
+			 paddingBottom="3">
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	<fx:Script>
+		<![CDATA[
+			
+			[Bindable]
+			private var _direction:int = 9;
+			public function get direction():int {
+				return _direction;
+			}
+			
+			public function set direction(value:int):void {
+				_direction = value;
+			}
+		]]>
+	</fx:Script>
+	
+	<s:ToggleButton width="35" height="35" label="1" selected="{_direction==1}" click="_direction=1;"/>
+	<s:ToggleButton width="35" height="35" label="2" selected="{_direction==2}" click="_direction=2;"/>
+	<s:ToggleButton width="35" height="35" label="3" selected="{_direction==3}" click="_direction=3;"/>
+	<s:ToggleButton width="35" height="35" label="8" selected="{_direction==8}" click="_direction=8;"/>
+	<s:ToggleButton width="35" height="35" label="9" selected="{_direction==9}" click="_direction=9;"/>
+	<s:ToggleButton width="35" height="35" label="4" selected="{_direction==4}" click="_direction=4;"/>
+	<s:ToggleButton width="35" height="35" label="7" selected="{_direction==7}" click="_direction=7;"/>
+	<s:ToggleButton width="35" height="35" label="6" selected="{_direction==6}" click="_direction=6;"/>
+	<s:ToggleButton width="35" height="35" label="5" selected="{_direction==5}" click="_direction=5;"/>
+</s:TileGroup>

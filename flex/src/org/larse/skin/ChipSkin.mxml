@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Skin xmlns:s="library://ns.adobe.com/flex/spark" 
+		xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		xmlns:d="http://ns.adobe.com/fxg/2008/dt">
+	
+	<fx:Metadata>
+		[HostComponent("spark.components.List")]
+	</fx:Metadata>
+	
+	<s:states>
+		<s:State name="normal"/>
+		<s:State name="disabled"/>
+	</s:states>
+	
+	<s:DataGroup clipAndEnableScrolling="true" height="100%" height.normal="100%" 
+				 id="dataGroup" width="100%" x="5" y="5"
+				 itemRenderer="org.larse.renderer.ChipRenderer">
+		<s:layout>
+			<s:TileLayout horizontalGap="6"/>
+		</s:layout>
+	</s:DataGroup>
+	<s:VScrollBar id="pageListVScroll" height="100%" 
+				  includeIn="normal" viewport="{dataGroup}" 
+				  width="18" right="2" y="2"/>
+</s:Skin>

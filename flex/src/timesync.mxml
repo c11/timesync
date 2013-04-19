@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Application xmlns:fx="http://ns.adobe.com/mxml/2009" 
+			   xmlns:s="library://ns.adobe.com/flex/spark" 
+			   xmlns:mx="library://ns.adobe.com/flex/mx" 
+			   xmlns:parsley="http://www.spicefactory.org/parsley"
+			   xmlns:ts="org.larse.components.*"
+			   minWidth="955" minHeight="600"
+			   creationComplete="initApp(event)"
+			   >
+	<fx:Declarations>
+		<parsley:Configure/>
+		<parsley:ContextBuilder>
+			<parsley:FlexConfig type="{TimeSyncContext}"/>
+			<parsley:RuntimeConfig instances="{[service]}"/> 
+		</parsley:ContextBuilder>
+	</fx:Declarations>
+	
+	<fx:Metadata>
+		[Event(name="get_image_list",type="org.larse.events.ImageListEvent")]
+		[Event(name="get_all_plots",type="org.larse.events.PlotEvent")]
+		[Event(name="get_plot_spectrals",type="org.larse.events.PlotEvent")]
+		[Event(name="plot_spectral_loaded",type="org.larse.events.PlotEvent")]
+		[Event(name="get_spectral_properties",type="org.larse.events.SpectralPropertyEvent")]
+		[ManagedEvents("plot_spectral_loaded,get_plot_spectrals,get_image_list,get_all_plots,get_spectral_properties")]
+	</fx:Metadata>
+	
+	<fx:Script>
+		<![CDATA[
+			import mx.collections.ArrayCollection;
+			import mx.events.FlexEvent;
+			
+			import org.larse.events.ImageListEvent;
+			import org.larse.events.PlotEvent;
+			import org.larse.events.SpectralPropertyEvent;
+			import org.larse.model.GlobalModel;
+			import org.larse.model.ImageListModel;
+			import org.larse.model.PlotModel;
+			import org.larse.services.TimeSyncService;
+			import org.larse.tsclass.ImageChip;
+			import org.larse.vos.ImageList;
+			import org.larse.vos.Neighbor;
+			import org.larse.vos.Plot;
+
+			[Bindable]
+			public var service:TimeSyncService;
+			
+			[Inject][Bindable]
+			public var plotModel:PlotModel;
+			
+			[Inject]
+			public var global:GlobalModel;
+			
+			[Inject]
+			public var imageListModel:ImageListModel;
+			
+			[Bindable]
+			private var cm:ContextMenu;
+			
+			private var storage:String = "storages/";
+			private var db:String = "ts";
+			private var db_suffix:String = "_data/";
+			
+			//private var gateway:String = "http://timesync.forestry.oregonstate.edu/gateway.php";
+			//private var server:String = "http://timesync.forestry.oregonstate.edu/";
+			private var gateway:String = "http://localhost:8888/timesync-debug/gateway.php";
+			private var server:String = "http://localhost:8888/";	
+			
+			protected function initApp(event:FlexEvent):void
+			{
+				service = new TimeSyncService();
+				service.endpoint = gateway; 
+				service.server = server; 
+				
+				initMenu();
+			}
+			
+			[Init]
+			public function loadPlots():void {
+				trace("load all plots");
+				var cevent:PlotEvent = new PlotEvent(PlotEvent.PLOT_GET_ALL);
+				dispatchEvent(cevent);
+				
+				trace("load image list");
+				var ievent:ImageListEvent = new ImageListEvent(ImageListEvent.IMAGE_LIST_GET);
+				dispatchEvent(ievent);
+				
+				trace("load spectral properties");
+				var sevent:SpectralPropertyEvent = new SpectralPropertyEvent(SpectralPropertyEvent.SPECTRAL_PROPERTIES_GET);
+				dispatchEvent(sevent);
+			}
+			
+			[MessageHandler(selector="plot_selection_changed")]
+			public function LoadImageChip():void {
+				if (plotModel.currentPlot==null) return;
+				
+				//if spectral has not been loaded for this plot
+				if (!(plotModel.currentPlot.isSpectralLoaded))
+					this.dispatchEvent(new PlotEvent(PlotEvent.PLOT_SPECTRAL_GET, plotModel.currentPlot));
+				else 
+					this.dispatchEvent(new PlotEvent(PlotEvent.PLOT_SPECTRAL_LOADED));
+				
+				chipPanel.title = "Image Chip: Plot" + plotModel.currentPlot.plotid;
+				
+				var chips:ArrayCollection = new ArrayCollection();
+				var seq:int = 1;
+				for each (var iml:ImageList in imageListModel.imageList) {
+					var chip:ImageChip = new ImageChip();
+					chip.plotid = plotModel.currentPlot.plotid;
+					chip.year = iml.year;
+					chip.julday = iml.julday;
+//					var filename:String = "ts_045030_mdb_" + "plot_" + plotModel.currentPlot.plotid + "_" + chip.year +"-" + chip.julday + ".png";
+//					chip.chipUrl = service.server + storage + "ts_4530/" + filename;
+
+					var filename:String = "test_db2_mdb_" + "plot_" + plotModel.currentPlot.plotid + "_" + chip.year +"-" + chip.julday + ".png";
+					chip.chipUrl = service.server + storage + "test_db2_mdb_data/" + filename;
+
+					chip.sequence = seq++;
+					chips.addItem(chip);
+				}
+				
+				chipPanel.chips = chips;
+				neighborDG.neighbors = plotModel.currentPlot.neighbors;
+			}
+			
+			[MessageHandler(selector="plot_spectral_loaded")]
+			public function plotTrajectory(event:PlotEvent):void {
+				//				trajectory.plotSpectrals = plotModel.currentPlot.plotSpectrals;
+				//				trajectory.spectralIndex = "wetness";
+				plotModel.currentPlot.rebuildVertexSpectral();
+				trajectory.setPlotSpectrals(plotModel.currentPlot.plotSpectrals, plotModel.currentPlot.vertexSpectrals);
+			}
+
+			
+			private function onAddNew(event:ContextMenuEvent):void {
+				if (plotModel.currentPlot == null)
+					return;
+				//var neig:Neighbor = new Neighbor(plotModel.currentPlot.plotid, 0, 0, "");
+				var neig:Neighbor = new Neighbor(global.project_id, global.tsa, plotModel.currentPlot.plotid, 
+					                             0, 0, global.interpreter.user_id, "")
+				plotModel.currentPlot.neighbors.addItem(neig);
+				plotModel.currentPlot.neighbors.refresh();
+			}
+			
+			private function onDeleteCurrent(event:ContextMenuEvent):void {
+				if (plotModel.currentPlot == null)
+					return;
+				
+				neighborDG.deleteNeighbor();			
+			}
+			
+			protected function initMenu():void
+			{
+				const cmiAdd:ContextMenuItem = new ContextMenuItem("Add New Neighbor");
+				cmiAdd.addEventListener(ContextMenuEvent.MENU_ITEM_SELECT, onAddNew);
+				
+				const cmiDelete:ContextMenuItem = new ContextMenuItem("Delete Neighbor");
+				cmiDelete.addEventListener(ContextMenuEvent.MENU_ITEM_SELECT, onDeleteCurrent);
+				
+				cm = new ContextMenu();
+				cm.hideBuiltInItems();
+				cm.customItems = [cmiAdd, cmiDelete];
+				
+				navcont.contextMenu = cm;
+			}
+			
+		]]>
+	</fx:Script>
+	<s:VGroup width="100%" height="100%" paddingLeft="10" paddingRight="10" paddingBottom="10">
+		<mx:ControlBar width="100%" height="35">
+			<s:HGroup verticalAlign="middle">
+				<s:Label fontSize="18" fontWeight="bold" text="TimeSync - Version 2.0"/>
+				<s:Spacer width="125"/>
+				<s:Label text="Projects:"/>
+				<s:DropDownList id="dropdownProject"/>
+				<s:Label text="Scenes:"/>
+				<s:DropDownList id="dropdownScenes"/>
+			</s:HGroup>
+		</mx:ControlBar>
+		<mx:HDividedBox width="100%" height="100%">
+			<s:HGroup width="100%" height="100%">
+				<ts:PlotPanel id="plotsGrid" width="55" height="100%"/>
+				<ts:ChipPanel id="chipPanel" width="100%" height="100%"/>
+			</s:HGroup>
+			<mx:VDividedBox width="45%" height="100%">
+				<!--
+				<s:Panel title="Spectral Trajectory" width="100%" height="100%"/>
+				-->
+				<ts:TrajectoryPanel id="trajectory" width="100%" height="100%" title="Trajectory"/>
+				<mx:VDividedBox width="100%" height="100%">
+					<mx:TabNavigator width="100%" height="100%">
+						<s:NavigatorContent width="100%" height="100%" label="Segments">
+							<ts:SegmentGridPanel id="segmentsDG" title="Open Vertices" 
+												 width="100%" height="100%"
+												 segments="{plotModel.currentPlot.segments}"/>
+						</s:NavigatorContent>
+						<s:NavigatorContent id="navcont" width="100%" height="100%" label="Neighborhood">
+							<ts:NeighborGridPanel id="neighborDG"
+												  width="100%" height="100%"
+												  neighbors="{plotModel.currentPlot.neighbors}"/>
+						</s:NavigatorContent>
+					</mx:TabNavigator>
+				<ts:PlotPropertyPanel title="Comments" width="100%" height="100%"/>
+				</mx:VDividedBox>
+			</mx:VDividedBox>
+		</mx:HDividedBox>
+	</s:VGroup>
+</s:Application>

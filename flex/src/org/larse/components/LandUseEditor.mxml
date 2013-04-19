@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:GridItemEditor xmlns:fx="http://ns.adobe.com/mxml/2009" 
+				  xmlns:s="library://ns.adobe.com/flex/spark" 
+				  xmlns:mx="library://ns.adobe.com/flex/mx"
+				  xmlns:parsley="http://www.spicefactory.org/parsley"
+				  depth="99"
+				  width="388" height="350">
+	<fx:Declarations>
+		<s:RadioButtonGroup id="radiogroupLu"/>
+		<parsley:Configure/>
+	</fx:Declarations>
+	
+	<fx:Metadata>
+		[Event(name="plot_modified",type="org.larse.events.PlotEvent")]
+		[ManagedEvents("plot_modified")]
+	</fx:Metadata>
+	
+	<fx:Script>
+		<![CDATA[
+			import mx.collections.ArrayCollection;
+			import mx.controls.Alert;
+			import mx.events.FlexEvent;
+			import mx.events.ItemClickEvent;
+			import mx.utils.ObjectProxy;
+			
+			import org.larse.events.PlotEvent;
+			import org.larse.tsclass.TsLuLc;
+			import org.larse.vos.Vertex;
+			
+			import spark.events.IndexChangeEvent;
+			
+			private var lus:Array = ["FOR (Forest)", 
+				"NNF (Natural non-forest vegetation)", 
+				"NVN (Non-vegetated natural)",
+				"AGR (Agriculture)",
+				//"Urban",
+				"NVA (Non-vegetated anthropogenic)"];
+			
+			private var lcs:Array = ["TRS (Trees)", 
+				"SHB (Shrubs)", 
+				"HRB (Herbaceous)",
+				"IMP (Impervious)",
+				"BRN (Barren)",
+				"H2O (Water)",
+				"S/I (Snow/ice)"];
+			
+			[Bindable]
+			public var land_uses:ArrayCollection;
+			
+			[Bindable]
+			public var land_covers:ArrayCollection;
+			
+			protected function initLuData(event:FlexEvent):void
+			{
+				land_uses = new ArrayCollection();
+				for each (var s:String in lus) {
+					land_uses.addItem(new TsLuLc(s));
+				}
+			}			
+			
+			protected function onDominantLuChange(event:IndexChangeEvent):void
+			{
+				for each (var o:TsLuLc in land_uses) {
+					if (o == dominantLu.selectedItem) {
+						o.isDominant = true;
+						o.isSelected = false;
+					}
+					else {
+						o.isDominant = false;
+					}
+				}
+			}
+			
+			/**
+			 * data field
+			 */
+			override public function save():Boolean {
+				var v:Vertex = data as Vertex;
+				
+				//Now update land use
+				if (dominantLu.selectedItem!=null) {
+					if (v.dominant_landuse!=dominantLu.selectedItem.label) {
+						v.dominant_landuse = dominantLu.selectedItem.label;
+						v.isDirty = true;
+					}
+				}
+				else {
+					if (v.dominant_landuse!=null)
+						v.isDirty = true;
+					v.dominant_landuse = null;
+				}
+				
+				var dval:int = d50Lu.selected ? 1 : 0;
+				if (v.dominant_landuse_over50 != dval) {
+					v.dominant_landuse_over50 = dval;
+					v.isDirty = true;
+				}
+				
+				var conf:String = ""
+				if (radiogroupLu.selectedValue != null) {
+					conf = radiogroupLu.selectedValue.toString();
+					if (v.landuse_confidence != conf) {
+						v.landuse_confidence = conf;
+						v.isDirty = true;
+					}
+				}
+				if (v.other_landuse != otherLandUse) {
+					v.other_landuse = otherLandUse;
+					trace(otherLandUse);
+					v.isDirty = true;
+				}
+				
+				this.dispatchEvent(new PlotEvent(PlotEvent.PLOT_MODIFIED));
+				
+				return true;
+			}
+			
+			override public function set data(value:Object):void
+			{
+				super.data = value;
+				var v:Vertex = data as Vertex;
+				
+				for each (var lu:TsLuLc in land_uses) {
+					if (lu.label == v.dominant_landuse) {
+						dominantLu.selectedItem = lu;
+						lu.isDominant = true;
+						lu.isSelected = false;
+					}
+				}
+				
+				d50Lu.selected = v.dominant_landuse_over50 == 1;
+				radiogroupLu.selectedValue = v.landuse_confidence;
+				otherLandUse = v.other_landuse;
+			}
+			
+			private function get otherLandUse():String {
+				var olu:String = "";
+				var cnt:int = 0;
+				for each (var lu:TsLuLc in land_uses) {
+					if (lu.isSelected) {
+						if (cnt++ > 0)
+							olu += "," + lu.label;
+						else
+							olu += lu.label;
+					}
+				}
+				return olu;
+			}
+			
+			private function set otherLandUse(value:String):void {
+				if (value==null || value.length==0)
+					return;
+				
+				clearOtherLandUse();
+				
+				for each (var s:String in value.split(",")) {
+					for each (var lu:TsLuLc in land_uses) {
+						if (s == lu.label) {
+							lu.isSelected = true;
+							break;
+						}
+					}
+				}
+			}
+			
+			private function clearOtherLandUse():void {
+				for each (var lu:TsLuLc in land_uses) {
+					lu.isSelected = false;
+				}				
+			}		
+
+		]]>
+	</fx:Script>
+	<s:Rect id="bgRect" top="1" left="1" bottom="1" right="1">
+		<s:fill>
+			<s:SolidColor id="bgFill" color="0xFFFFFF" />
+		</s:fill>
+	</s:Rect>
+	<s:PopUpAnchor displayPopUp="true">
+		<s:BorderContainer>
+			<s:VGroup width="100%" height="100%">
+				<s:VGroup>
+					<s:VGroup left="5" right="5" top="5" 
+							  paddingBottom="5" paddingLeft="5" 
+							  paddingRight="5" paddingTop="5">
+						<s:Label fontWeight="bold" 
+								 paddingTop="4" 
+								 text="Dominant Use (9 pixels)"/>
+						<s:DropDownList id="dominantLu" width="175"
+										creationComplete="initLuData(event)"
+										dataProvider="{land_uses}"
+										change="onDominantLuChange(event)"/>
+					</s:VGroup>
+					<s:VGroup width="100%" paddingBottom="5" paddingLeft="5" paddingRight="5" paddingTop="5">
+						<s:CheckBox id="d50Lu" label="Dominant >50%"/>
+					</s:VGroup>
+					<s:VGroup width="100%" paddingBottom="5" paddingLeft="5" paddingRight="5" paddingTop="5">
+						<s:Label fontWeight="bold" text="Other Land Use"/>
+						<s:List id="otherLu" width="100%" height="142"
+								dataProvider="{land_uses}"
+								itemRenderer="org.larse.renderer.CheckBoxListRenderer"/>
+					</s:VGroup>
+				</s:VGroup>
+			</s:VGroup>
+		</s:BorderContainer>
+	</s:PopUpAnchor>
+</s:GridItemEditor>

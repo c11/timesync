@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Panel xmlns:fx="http://ns.adobe.com/mxml/2009"
+		 xmlns:s="library://ns.adobe.com/flex/spark"
+		 xmlns:mx="library://ns.adobe.com/flex/mx"
+		 xmlns:parsley="http://www.spicefactory.org/parsley"
+		 xmlns:services="org.larse.services.*"
+		 title="Plots"
+		 width="400" height="300">
+	<fx:Declarations>
+		<parsley:Configure/>
+	</fx:Declarations>
+	
+	<fx:Metadata>
+		[Event(name="save_plot",type="org.larse.events.PlotEvent")]
+		[ManagedEvents("save_plot")]
+	</fx:Metadata>
+	
+	<fx:Script>
+		<![CDATA[
+			import mx.collections.ArrayCollection;
+			import mx.controls.Alert;
+			
+			import org.larse.events.PlotEvent;
+			import org.larse.model.PlotModel;
+			import org.larse.vos.Plot;
+			
+			import spark.events.IndexChangeEvent;
+			
+			[Inject]
+			public var model:PlotModel;
+			
+			[Bindable]
+			public var plots:ArrayCollection = new ArrayCollection();
+			
+			[MessageHandler(selector="plot_model_changed")]
+			public function OnPlotLoaded(event:PlotEvent):void {
+				plots = model.Plots;	
+			}
+			
+			private var _examplesOnly:Boolean = false;
+			[Bindable]
+			public function get examplesOnly():Boolean {
+				return _examplesOnly;
+			}
+			public function set examplesOnly(value:Boolean):void {
+				_examplesOnly = value;
+				applyFilter();
+			}
+			
+			private function applyFilter():void {
+				if (examplesOnly)
+					plots.filterFunction = exampleFilter;
+				else
+					plots.filterFunction = null;
+				plots.refresh();
+			}
+			
+			private function exampleFilter(item:Object):Boolean {
+				var p:Plot = item as Plot;
+				if (p == null || !p.isExample)
+					return false;
+				return true;
+			}
+			
+			protected function onPlotSelected(event:MouseEvent):void
+			{
+				var selectedPlot:Plot = plotList.selectedItem as Plot;
+				if (selectedPlot != null) {
+					trace("Current plot: "+selectedPlot.plotid);
+					model.currentPlot = selectedPlot;
+				}
+			}
+			
+			protected function onPlotChange(event:IndexChangeEvent):void
+			{
+				// TODO Auto-generated method stub
+				var oldindex:int = event.oldIndex;
+				if (oldindex >= 0) {
+					var oldplot:Plot = plots.getItemAt(oldindex) as Plot;
+					var pevent:PlotEvent = new PlotEvent(PlotEvent.PLOT_SAVE, oldplot, true, true);
+					this.dispatchEvent(pevent);
+				}
+			}
+			
+			[MessageHandler(selector="plot_modified")]
+			public function onLogin(event:PlotEvent):void {
+				var ifac:IFactory = plotList.itemRenderer;
+				plotList.itemRenderer = null;
+				plotList.itemRenderer = ifac;
+			}
+			
+		]]>
+	</fx:Script>
+	<s:List id="plotList" x="0" y="0" minWidth="5" minHeight="5" width="100%" height="100%" 
+			dataProvider="{plots}"
+			change="onPlotChange(event)"
+			click="onPlotSelected(event)"
+			itemRenderer="org.larse.renderer.PlotRenderer"/>
+</s:Panel>

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:ItemRenderer xmlns:fx="http://ns.adobe.com/mxml/2009" 
+				xmlns:s="library://ns.adobe.com/flex/spark" 
+				xmlns:mx="library://ns.adobe.com/flex/mx" 
+				autoDrawBackground="true">
+	
+	<fx:Script>
+		<![CDATA[
+			protected function onChange(event:Event):void
+			{
+				data.isSelected = !data.isSelected;			
+			}
+		]]>
+	</fx:Script>
+	
+	
+	<s:CheckBox	enabled="{!data.isDominant}" 
+				selected="{data.isSelected}" 
+				label="{data.label}"
+				change="onChange(event)"
+				/>
+</s:ItemRenderer>

@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:TitleWindow xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" 
+		 width="520" height="400">
+	<fx:Declarations>
+
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import mx.collections.ArrayCollection;
+			import mx.events.CloseEvent;
+			
+			import org.larse.events.PlotEvent;
+			import org.larse.renderer.TsDataGridItemRender;
+			import org.larse.vos.Vertex;
+			
+			import spark.skins.spark.DefaultGridItemRenderer;
+			
+			[Bindable]
+			public var vertices:ArrayCollection = new ArrayCollection();
+			
+			private function renderFunction(item:Object, column:GridColumn):ClassFactory {
+				var v:Vertex = item as Vertex;
+				if (v==null || v.complete)
+					return new ClassFactory(DefaultGridItemRenderer);
+				else
+					return new ClassFactory(TsDataGridItemRender);
+			}
+			
+		]]>
+	</fx:Script>
+	<s:DataGrid id="vertexDG" width="100%" height="100%"
+				dataProvider="{vertices}" 
+				sortableColumns="false"
+				editable="true" >
+		<s:columns>
+			<s:ArrayList>
+				<s:GridColumn dataField="image_year" 
+							  headerText="Date"
+							  width="45"
+							  itemRendererFunction="renderFunction"
+							  editable="false"/>
+				<s:GridColumn dataField="date_confidence" 
+							  headerText="Date Confidence"
+							  width="115"
+							  itemRendererFunction="renderFunction"
+							  itemEditor="org.larse.components.ConfidenceEditor"
+							  />
+				<!--
+				<s:GridColumn dataField="dominant_landuse" 
+							  headerText="Land Use"
+							  width="175"
+							  itemRendererFunction="renderFunction"
+							  itemEditor="org.larse.components.LandUseEditor"
+							  />
+				<s:GridColumn dataField="dominant_landcover" 
+							  headerText="Land Cover"
+							  width="100"
+							  itemRendererFunction="renderFunction"
+							  itemEditor="org.larse.components.LandCoverEditor"
+							  />
+				-->
+				<s:GridColumn dataField="lulc" 
+							  headerText="Land Use/Land Cover"
+							  width="275"
+							  itemRendererFunction="renderFunction"
+							  itemEditor="org.larse.components.LandUseLandCoverEditor"
+							  />
+				<s:GridColumn dataField="score" 
+							  headerText="Score"
+							  itemRendererFunction="renderFunction"
+							  editable="false"
+							  />
+			</s:ArrayList>
+		</s:columns>
+		<s:typicalItem>
+			<fx:Object image_year="1984-180" 
+					   dominant_landuse="Natural non-forest vegetation" 
+					   dominant_landcover="Herbaceous"
+					   date_confidence="Date Confidence "
+					   score="Score"/>
+		</s:typicalItem>
+	</s:DataGrid>	
+</s:TitleWindow>
+

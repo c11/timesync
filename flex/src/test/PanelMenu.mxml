@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Panel xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx"
+		 creationComplete="initApp(event)"
+		 width="400" height="300">
+	<fx:Script>
+		<![CDATA[
+			import mx.events.FlexEvent;
+			
+			protected function initApp(event:FlexEvent):void {
+				const cmiAdd:ContextMenuItem = new ContextMenuItem("Add New Neighbor");
+				cmiAdd.addEventListener(ContextMenuEvent.MENU_ITEM_SELECT, onAddNew);
+				
+				const cmiDelete:ContextMenuItem = new ContextMenuItem("Delete Neighbor");
+				cmiDelete.addEventListener(ContextMenuEvent.MENU_ITEM_SELECT, onDeleteCurrent);
+				
+				cm = new ContextMenu();
+				cm.hideBuiltInItems();
+				cm.customItems = [cmiAdd, cmiDelete];
+				
+				navcont.contextMenu = cm;
+			}
+			
+			private function onDeleteCurrent(event:ContextMenuEvent):void {
+		
+			}
+			
+			private function onAddNew(event:ContextMenuEvent):void {
+				
+			}
+				
+			
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+
+	<s:DataGrid id="dataGrid" x="81" y="36"
+				requestedRowCount="4">
+		<s:columns>
+			<s:ArrayList>
+				<s:GridColumn dataField="year" headerText="year"></s:GridColumn>
+				<s:GridColumn dataField="julday" headerText="julday"></s:GridColumn>
+				<s:GridColumn dataField="type" headerText="type"></s:GridColumn>
+			</s:ArrayList>
+		</s:columns>
+		<s:typicalItem>
+			<fx:Object julday="julday1" type="type1" year="year1"></fx:Object>
+		</s:typicalItem>
+	</s:DataGrid>
+	
+</s:Panel>

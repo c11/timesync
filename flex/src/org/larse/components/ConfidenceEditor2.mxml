@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:GridItemEditor xmlns:fx="http://ns.adobe.com/mxml/2009" 
+				  xmlns:s="library://ns.adobe.com/flex/spark" 
+				  xmlns:mx="library://ns.adobe.com/flex/mx"
+				  xmlns:parsley="http://www.spicefactory.org/parsley"
+				  depth="99"
+				  width="388" height="350">
+	<fx:Declarations>
+		<s:RadioButtonGroup id="radiogroupLu"/>
+		<s:RadioButtonGroup id="radiogroupLc"/>
+		<parsley:Configure/>
+	</fx:Declarations>
+	
+	<fx:Metadata>
+		[Event(name="plot_modified",type="org.larse.events.PlotEvent")]
+		[ManagedEvents("plot_modified")]
+	</fx:Metadata>
+	
+	<fx:Script>
+		<![CDATA[
+			import mx.collections.ArrayCollection;
+			import mx.controls.Alert;
+			import mx.events.FlexEvent;
+			import mx.events.ItemClickEvent;
+			import mx.utils.ObjectProxy;
+			
+			import org.larse.events.PlotEvent;
+			import org.larse.tsclass.TsLuLc;
+			import org.larse.vos.Vertex;
+			
+			import spark.events.IndexChangeEvent;
+			
+			/**
+			 * data field
+			 */
+			override public function save():Boolean {
+				var v:Vertex = data as Vertex;
+				
+				if (confidence.selectedItem!=null) {
+					if (v.date_confidence != confidence.selectedItem) {
+						v.date_confidence = confidence.selectedItem;
+						v.isDirty = true;
+					}
+				}
+				
+				this.dispatchEvent(new PlotEvent(PlotEvent.PLOT_MODIFIED));
+				
+				return true;
+			}
+			
+			override public function set data(value:Object):void
+			{
+				super.data = value;
+				var v:Vertex = data as Vertex;
+
+				confidence.selectedItem = v.date_confidence;				
+			}
+			
+			/**
+			 * value field
+			 */
+			override public function set value(newValue:Object):void {
+				if (newValue == null)
+					return;
+				confidence.selectedItem = newValue;				
+			}
+			
+			override public function get value():Object {
+				return confidence.selectedItem;
+			}
+		]]>
+	</fx:Script>
+	<s:Rect id="bgRect" top="1" left="1" bottom="1" right="1">
+		<s:fill>
+			<s:SolidColor id="bgFill" color="0xFFFFFF" />
+		</s:fill>
+	</s:Rect>
+	<s:PopUpAnchor displayPopUp="true">
+		<s:BorderContainer>
+			<s:DropDownList id="confidence" width="175">
+				<s:dataProvider>
+						<s:ArrayList>
+							<fx:String>High</fx:String>
+							<!--
+							<fx:String>Medium</fx:String>
+							-->
+							<fx:String>Low</fx:String>
+						</s:ArrayList>
+					</s:dataProvider>
+				</s:DropDownList>
+		</s:BorderContainer>
+	</s:PopUpAnchor>
+</s:GridItemEditor>

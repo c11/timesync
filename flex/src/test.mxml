@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Application xmlns:fx="http://ns.adobe.com/mxml/2009"
+			   xmlns:s="library://ns.adobe.com/flex/spark"
+			   xmlns:mx="library://ns.adobe.com/flex/mx"
+			   xmlns:services="org.larse.services.*"
+			   minWidth="955" minHeight="600">
+	<fx:Script>
+		<![CDATA[
+			import mx.controls.Alert;
+			import mx.events.FlexEvent;
+			
+			protected function dataGrid_creationCompleteHandler(event:FlexEvent):void
+			{
+				getImageListResult.token = imageListService.getImageList(1, 4630);
+			}
+			
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<s:CallResponder id="getImageListResult"/>
+		<services:ImageListService id="imageListService"
+								   fault="Alert.show(event.fault.faultString + '\n' + event.fault.faultDetail)"
+								   showBusyCursor="true"/>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	<s:DataGrid id="dataGrid" x="180" y="191"
+				creationComplete="dataGrid_creationCompleteHandler(event)" requestedRowCount="4">
+		<s:columns>
+			<s:ArrayList>
+				<s:GridColumn dataField="year" headerText="year"></s:GridColumn>
+				<s:GridColumn dataField="julday" headerText="julday"></s:GridColumn>
+				<s:GridColumn dataField="type" headerText="type"></s:GridColumn>
+			</s:ArrayList>
+		</s:columns>
+		<s:typicalItem>
+			<fx:Object julday="julday1" type="type1" year="year1"></fx:Object>
+		</s:typicalItem>
+		<s:AsyncListView list="{getImageListResult.lastResult}"/>
+	</s:DataGrid>
+	<s:ComboBox x="134" y="369"/>
+	<s:DropDownList x="134" y="434" width="146"></s:DropDownList>
+</s:Application>

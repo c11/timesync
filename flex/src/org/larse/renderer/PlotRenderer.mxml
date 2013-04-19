@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:ItemRenderer xmlns:fx="http://ns.adobe.com/mxml/2009" 
+				xmlns:s="library://ns.adobe.com/flex/spark" 
+				xmlns:mx="library://ns.adobe.com/flex/mx" 
+				autoDrawBackground="true">
+	
+	<s:states>
+		<s:State name="normal"/>
+		<s:State name="hovered"/>
+		<s:State name="selected"/>
+	</s:states>
+	
+	<fx:Script>
+		<![CDATA[
+			import org.larse.vos.Plot;
+			
+			[Bindable]
+			private var bgcolor:uint = 0xFFFFFF;
+			
+			[Bindable]
+			private var fgcolor:uint = 0x000000;
+			
+			[Bindable]
+			private var fweight:String = "normal";
+			
+			[Bindable]
+			private var fstyle:String = "normal";
+			
+			override public function set data(value:Object):void
+			{
+				super.data = value;
+				var p:Plot = data as Plot;
+				if (p.is_complete>0) {
+					bgcolor = 0x037F1E;
+					fgcolor = 0xFFFFFF;
+					fweight = "bold";
+				}
+				else if (p.complete) {
+					bgcolor = 0xBEEB9F;
+					fgcolor = 0x000000;
+					fweight = "normal";
+				}
+				else if (p.isModified || p.isDirty) {
+					bgcolor = 0xBEDDEA;
+					fgcolor = 0xE8291B;
+					fstyle = "italic";
+				}
+				else {
+					bgcolor = 0xFFFFFF;
+					fgcolor = 0x000000;
+					fweight = "normal";
+				}
+				
+			}
+			
+		]]>
+	</fx:Script>
+	
+	
+	
+	<s:Label text="{data.plotid}" color="{fgcolor}" 
+			 backgroundColor.hovered="0xFFFF00" color.hovered="0x000000"
+			 backgroundColor.selected="0xFFFF00" color.selected="0x000000"
+			 backgroundColor="{bgcolor}" fontStyle="{fstyle}" 
+			 fontWeight="{fweight}" paddingLeft="15" paddingTop="3" 
+			 width="100%"/>
+	
+</s:ItemRenderer>

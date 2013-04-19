@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" width="420" height="372">
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	<s:BorderContainer>
+		<s:HGroup>
+			<s:VGroup>
+				<s:VGroup left="5" right="5" top="5" 
+						  paddingBottom="5" paddingLeft="5" 
+						  paddingRight="5" paddingTop="5">
+					<s:Label fontWeight="bold" 
+							 paddingTop="4" 
+							 text="Dominant Use (9 pixels)"/>
+					<s:DropDownList id="dominantLu" width="175"
+									creationComplete="initLuData(event)"
+									dataProvider="{land_uses}"
+									change="onDominantLuChange(event)"/>
+				</s:VGroup>
+				<s:VGroup width="100%" paddingBottom="5" paddingLeft="5" paddingRight="5" paddingTop="5">
+					<s:Label fontWeight="bold" text="Confidence"/>
+					<s:HGroup width="60%" horizontalAlign="center" textAlign="center">
+						<s:RadioButton label="High" groupName="radiogroupLu"/>
+						<s:RadioButton label="Medium" groupName="radiogroupLu"/>
+						<s:RadioButton label="Low" groupName="radiogroupLu"/>
+					</s:HGroup>
+					<s:CheckBox id="d50Lu" label="Dominant >50%"/>
+				</s:VGroup>
+				<s:VGroup width="100%" paddingBottom="5" paddingLeft="5" paddingRight="5" paddingTop="5">
+					<s:Label fontWeight="bold" text="Other Land Use"/>
+					<s:List id="otherLu" width="100%" height="142"
+							dataProvider="{land_uses}"
+							itemRenderer="org.larse.renderer.CheckBoxListRenderer"/>
+				</s:VGroup>
+				
+			</s:VGroup>
+			
+			<s:VGroup>
+				<s:VGroup left="5" right="5" top="5" 
+						  paddingBottom="5" paddingLeft="5" 
+						  paddingRight="5" paddingTop="5">
+					<s:Label fontWeight="bold" 
+							 paddingTop="4" 
+							 text="Dominant Cover (1 pixel)"/>
+					<s:DropDownList id="dominantLc" width="175"
+									creationComplete="initLcData(event)"
+									dataProvider="{land_covers}"
+									change="onDominantLcChange(event)"/>
+					
+				</s:VGroup>
+				<s:VGroup width="100%" paddingBottom="5" paddingLeft="5" paddingRight="5" paddingTop="5">
+					<s:Label fontWeight="bold" text=" Confidence"/>
+					<s:HGroup width="60%" horizontalAlign="center" textAlign="center">
+						<s:RadioButton label="High" groupName="radiogroupLc"/>
+						<s:RadioButton label="Medium" groupName="radiogroupLc"/>
+						<s:RadioButton label="Low" groupName="radiogroupLc"/>
+					</s:HGroup>
+					<s:CheckBox id="d50Lc" label="Dominant >50%"/>
+				</s:VGroup>
+				<s:VGroup width="100%" paddingBottom="5" paddingLeft="5" paddingRight="5" paddingTop="5">
+					<s:Label fontWeight="bold" text="Other Land Cover"/>
+					<s:List id="otherLc" width="100%" height="142"
+							dataProvider="{land_covers}"
+							itemRenderer="org.larse.renderer.CheckBoxListRenderer"/>
+				</s:VGroup>
+				
+			</s:VGroup>
+		</s:HGroup>
+	</s:BorderContainer>
+	
+</s:Group>

@@ -1,0 +1,688 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Application xmlns:fx="http://ns.adobe.com/mxml/2009"
+			   xmlns:s="library://ns.adobe.com/flex/spark"
+			   xmlns:mx="library://ns.adobe.com/flex/mx"
+			   xmlns:parsley="http://www.spicefactory.org/parsley"
+			   xmlns:ts="org.larse.components.*"
+			   minWidth="955" minHeight="600"
+			   creationComplete="initApp(event)" currentState="login">
+	
+	<fx:Style source="timesync.css"/>
+	
+	<s:states>
+		<s:State name="App" enterState="initMenu(event)"/>
+		<s:State name="login"/>
+	</s:states>
+	<fx:Declarations>
+		<parsley:Configure/>
+		<parsley:ContextBuilder>
+			<parsley:FlexConfig type="{TimeSyncContext}"/>
+			<parsley:RuntimeConfig instances="{[service]}"/> 
+		</parsley:ContextBuilder>
+	</fx:Declarations>
+	
+	<fx:Metadata>
+		[Event(name="get_image_list",type="org.larse.events.ImageListEvent")]
+		[Event(name="load_verteices",type="org.larse.events.PlotEvent")]
+		[Event(name="load_neighbors",type="org.larse.events.PlotEvent")]
+		[Event(name="load_comments",type="org.larse.events.PlotEvent")]
+		[Event(name="get_all_plots",type="org.larse.events.PlotEvent")]
+		[Event(name="get_plot_spectrals",type="org.larse.events.PlotEvent")]
+		[Event(name="plot_spectral_loaded",type="org.larse.events.PlotEvent")]
+		[Event(name="get_spectral_properties",type="org.larse.events.SpectralPropertyEvent")]
+		[Event(name="get_user_assignments",type="org.larse.events.ProjectEvent")]
+		[Event(name="login",type="org.larse.events.UserEvent")]
+		[ManagedEvents("load_comments,load_neighbors,load_verteices,login,get_user_assignments,plot_spectral_loaded,get_plot_spectrals,get_image_list,get_all_plots,get_spectral_properties")]
+	</fx:Metadata>
+	
+	<fx:Script>
+		<![CDATA[
+			import flash.external.ExternalInterface;
+			
+			import mx.collections.ArrayCollection;
+			import mx.events.FlexEvent;
+			import mx.events.MenuEvent;
+			import mx.events.SliderEvent;
+			
+			import org.larse.events.ImageListEvent;
+			import org.larse.events.PlotEvent;
+			import org.larse.events.ProjectEvent;
+			import org.larse.events.SpectralPropertyEvent;
+			import org.larse.events.TimeSyncEvent;
+			import org.larse.events.UserEvent;
+			import org.larse.events.VertexEvent;
+			import org.larse.model.GlobalModel;
+			import org.larse.model.ImageListModel;
+			import org.larse.model.PlotModel;
+			import org.larse.services.TimeSyncService;
+			import org.larse.tsclass.ImageChip;
+			import org.larse.tsclass.PlotSpectral;
+			import org.larse.vos.ImageList;
+			import org.larse.vos.Neighbor;
+			import org.larse.vos.Plot;
+			import org.larse.vos.TimeSyncTask;
+			import org.larse.vos.Vertex;
+			
+			import spark.collections.Sort;
+			import spark.events.IndexChangeEvent;
+
+			[Bindable]
+			public var service:TimeSyncService;
+			
+			[Inject][Bindable]
+			public var plotModel:PlotModel;
+			
+			[Inject]
+			public var imageListModel:ImageListModel;
+			
+			[Inject][Bindable]
+			public var global:GlobalModel;
+			
+			[Bindable]
+			private var cm:ContextMenu;
+			
+			[Bindable]
+			private var vcm:ContextMenu;
+			
+			[Bindable]
+			private var projects:ArrayCollection=new ArrayCollection();
+			
+			[Bindable]
+			private var tsas:ArrayCollection = new ArrayCollection();
+			
+			private var storage:String = "storages/";
+			private var db:String = "ts";
+			private var db_suffix:String = "_data/";
+			
+			private var gateway:String = "http://timesync.forestry.oregonstate.edu/gateway21.php";
+			private var server:String = "http://timesync.forestry.oregonstate.edu/";
+
+			//private var gateway:String = "http://localhost:8888/timesync-debug/gateway.php";
+			//private var server:String = "http://localhost:8888/";	
+
+			//private var gateway:String = "http://pcweb.fsl.orst.edu/timesync/gateway21.php";
+			//private var server:String = "http://pcweb.fsl.orst.edu/timesync/";
+
+			
+			protected function initApp(event:FlexEvent):void
+			{
+				service = new TimeSyncService();
+				service.endpoint = gateway; 
+				service.server = server; 
+	  			//initMenu();
+				this.addEventListener(KeyboardEvent.KEY_DOWN, onKeyDown);
+			}
+			
+			private function onKeyDown(event:KeyboardEvent):void {
+				if (event.charCode == 13) {
+					doLogin();
+				}
+				else if (event.keyCode == Keyboard.UP || event.keyCode == Keyboard.DOWN) {
+					selectNextPlot(event.keyCode)
+				}
+			}
+			
+			private function selectNextPlot(code:uint):void {
+				if (this.currentState == "login")
+					return; //do nothing in login state
+			}
+			
+			//[Init]
+			public function loadPlots():void {
+				trace("load user assignment");
+				var pevent:ProjectEvent = new ProjectEvent(ProjectEvent.GET_ASSIGNMENT);
+				dispatchEvent(pevent);
+				
+				trace("load spectral properties");
+				var sevent:SpectralPropertyEvent = new SpectralPropertyEvent(SpectralPropertyEvent.SPECTRAL_PROPERTIES_GET);
+				dispatchEvent(sevent);
+			}
+			
+			[MessageHandler(selector="plot_selection_changed")]
+			public function LoadImageChip():void {
+				var cplot:Plot = plotModel.currentPlot;
+				
+				if (cplot==null) return;
+				
+				if (cplot.complete)
+					trace("plot is done!");
+				
+				//buildChipList(cplot);
+				
+				//if spectral has not been loaded for this plot
+				if (!(cplot.isSpectralLoaded))
+					this.dispatchEvent(new PlotEvent(PlotEvent.PLOT_SPECTRAL_GET, cplot));
+				else {
+					this.dispatchEvent(new PlotEvent(PlotEvent.PLOT_SPECTRAL_LOADED));
+				}
+				
+//				//Now load vertex, neighbors, and comments
+//				//if vertex has not been loaded
+//				if (!cplot.isVertexLoaded) {
+//					this.dispatchEvent(new PlotEvent(PlotEvent.LOAD_VERTEX, cplot));
+//				}
+//				else {
+//					cplot.updateChipVertex();
+//				}
+
+				//neighborDG.neighbors = cplot.neighbors;
+//				if (!cplot.isNeighborLoaded) {
+//					this.dispatchEvent(new PlotEvent(PlotEvent.LOAD_NEIGHBOR, cplot));
+//				}
+				
+				if (!cplot.isCommentLoaded) {
+					this.dispatchEvent(new PlotEvent(PlotEvent.LOAD_COMMENTS, cplot));
+				}
+				else {
+					
+				}
+				
+				trajectory.resetScale();
+				//TODO: will binding work better here?
+				//neighborDG.neighbors = cplot.neighbors;
+			}
+			
+			private function updateChips(cplot:Plot):void {
+				chipPanel.title = "Image Chip: Plot " + cplot.plotid + (global.target_day > 0 ? ("    Target Day: " + global.target_day) : "");
+				
+				if (!(cplot.isChiplistDefined)) {
+					buildChipList2(cplot);
+				}
+				
+				chipPanel.chips = cplot.chips;
+				//Now load vertex, neighbors, and comments
+				//if vertex has not been loaded
+				if (!cplot.isVertexLoaded) {
+					this.dispatchEvent(new PlotEvent(PlotEvent.LOAD_VERTEX, cplot));
+				}
+				else {
+					cplot.updateChipVertex();
+				}
+				
+			}
+			
+
+			/**
+			 * buildChipList2 differs from buildChipList in that it is based on plot level image selection
+			 * instead of the whole scene level image selection. 
+			 */
+			private function buildChipList2(cplot:Plot):void  {
+				ExternalInterface.call("loadPlotMap", cplot.lat, cplot.lng);
+				
+				
+				var chips:ArrayCollection = new ArrayCollection();
+				var seq:int = 1;
+				for each (var sp:PlotSpectral in cplot.plotSpectrals) {
+					var chip:ImageChip = new ImageChip();
+					chip.plotid = cplot.plotid;
+					chip.year = sp.year;
+					chip.julday = sp.julday;
+					chip.project_id = cplot.project_id;
+					chip.tsa = cplot.tsa;
+					
+					var filename:String = "plot_"+ cplot.plotid + "/tsa_" + cplot.tsa + "_plot_" + cplot.plotid + "_" + chip.year +"-" + chip.julday + ".png";
+					chip.chipUrl = service.server + storage + "prj_" + global.project_id + "/ts_" + cplot.tsa +"/" + filename + "?ts=" + new Date().time;
+					
+					chip.sequence = seq++;
+					chips.addItem(chip);
+				}
+				
+				//by default add first and last as vertex
+				if (plotModel.currentPlot.vertices.length == 0) {
+					var psp1:PlotSpectral = cplot.plotSpectrals[0] as PlotSpectral;
+					var psp2:PlotSpectral = cplot.plotSpectrals[1] as PlotSpectral;
+					
+					//who is the interpreter, this is for superuser
+					var interp:int = global.examinee_id > 0 ? global.examinee_id : global.interpreter.user_id; 
+					
+					var v:Vertex = new Vertex(global.project_id, global.tsa, cplot.plotid, 
+						interp, psp1.year, psp1.julday);
+					
+					var chp:ImageChip = chips[0] as ImageChip;
+					if (psp1.year != psp2.year) { //only add this if there is only one image
+						plotModel.currentPlot.addVertex(v, false);
+						chp.isVertex = true;
+					}
+					
+					psp1 = cplot.plotSpectrals[cplot.imageCount-1] as PlotSpectral;;
+					psp2 = cplot.plotSpectrals[cplot.imageCount-2] as PlotSpectral;;
+					
+					v = new Vertex(global.project_id, global.tsa, cplot.plotid, 
+						interp, psp1.year, psp1.julday);
+					
+					if (psp1.year != psp2.year) { //only add this if there is only one image
+						plotModel.currentPlot.addVertex(v, false);
+						chp = chips[chips.length-1] as ImageChip;
+						chp.isVertex = true;
+					}
+				}
+				cplot.isChiplistDefined = true;
+				cplot.chips = chips;
+				chipPanel.chips = chips;
+			}
+			
+			[MessageHandler(selector="login_successful")]
+			public function onLogin(event:TimeSyncEvent):void {
+				global.user_role = 0; //role.selectedIndex;
+				this.currentState = "App";
+			}
+			
+			[MessageHandler(selector="plot_spectral_loaded")]
+			public function plotTrajectory(event:PlotEvent):void {
+				//				trajectory.plotSpectrals = plotModel.currentPlot.plotSpectrals;
+				//				trajectory.spectralIndex = "wetness";
+				updateChips(plotModel.currentPlot);
+				plotModel.currentPlot.rebuildVertexSpectral();
+				trajectory.setPlotSpectrals(plotModel.currentPlot.plotSpectrals, plotModel.currentPlot.vertexSpectrals);
+			}
+
+			[MessageHandler(selector="assignment_changed")]
+			public function onAssignmentChanged(event:ProjectEvent):void {
+				var arr:ArrayCollection = getUniqueProjects(global.assignments);
+				dropdownProject.dataProvider = arr;
+//				if (arr.length > 0)
+//					dropdownProject.selectedIndex = 0;
+			}
+			
+			//get unique projects
+			private function getUniqueProjects(tasks:ArrayCollection):ArrayCollection {
+				var len:Number = tasks.length;
+				var dic:Dictionary = new Dictionary();
+				for each (var tst:TimeSyncTask in tasks) {
+					dic[tst.project_id] = tst;
+				}
+				var unique:ArrayCollection = new ArrayCollection();
+				for each (var utst:TimeSyncTask in dic) {
+					unique.addItem(utst);
+				}
+				return unique;
+			}
+
+			//get the tsa associated with a project
+			//TODO: alternatively this can be achieved with a new dcd call
+			private function getProjectTsas(tasks:ArrayCollection, project_id:int):ArrayCollection {
+				var len:Number = tasks.length;
+				var dic:Dictionary = new Dictionary();
+				for each (var tst:TimeSyncTask in tasks) {
+					if (tst.project_id == project_id)
+						dic[tst.tsa] = tst.tsa;
+				}
+				var unique:ArrayCollection = new ArrayCollection();
+				for each (var tsa:int in dic) {
+					unique.addItem(tsa);
+				}
+				unique.sort = new Sort();
+				unique.refresh();
+				return unique;				
+			}
+			
+			private function onAddNew(event:ContextMenuEvent):void {
+				if (plotModel.currentPlot == null)
+					return;
+				var neig:Neighbor = new Neighbor(global.project_id, global.tsa,
+					                             plotModel.currentPlot.plotid, 
+												 0, 0, global.interpreter.user_id, "");
+				plotModel.currentPlot.addNeighbor(neig);
+				plotModel.currentPlot.neighbors.refresh();
+			}
+			
+			private function onDeleteCurrent(event:ContextMenuEvent):void {
+				if (plotModel.currentPlot == null)
+					return;
+				
+				//neighborDG.deleteNeighbor();			
+			}
+			
+			private function onCopy(event:ContextMenuEvent):void {
+				if (plotModel.currentPlot == null)
+					return;
+				
+				vertexDG.copyPrevious();
+			}
+
+			private function onReplicate(event:ContextMenuEvent):void {
+				if (plotModel.currentPlot == null)
+					return;
+				vertexDG.replicateToFollowing();
+			}
+			
+			private function onClear(event:ContextMenuEvent):void {
+				if (plotModel.currentPlot == null)
+					return;
+				
+				vertexDG.clearCurrent();
+			}
+			
+			protected function initMenu(event:FlexEvent):void
+			{
+				loadPlots();
+				
+				//build context menu for neighborhood table
+				const cmiAdd:ContextMenuItem = new ContextMenuItem("Add New Neighbor");
+				cmiAdd.addEventListener(ContextMenuEvent.MENU_ITEM_SELECT, onAddNew);
+				
+				const cmiDelete:ContextMenuItem = new ContextMenuItem("Delete Neighbor");
+				cmiDelete.addEventListener(ContextMenuEvent.MENU_ITEM_SELECT, onDeleteCurrent);
+				
+				cm = new ContextMenu();
+				cm.hideBuiltInItems();
+				cm.customItems = [cmiAdd, cmiDelete];
+				
+				//navcont.contextMenu = cm;
+				
+				
+				//build context menu for vertex table
+				const cmiCopy:ContextMenuItem = new ContextMenuItem("Copy previous interpretation");
+				cmiCopy.addEventListener(ContextMenuEvent.MENU_ITEM_SELECT, onCopy);
+				
+				const cmiReplicate:ContextMenuItem = new ContextMenuItem("Copy to following vertices");
+				cmiReplicate.addEventListener(ContextMenuEvent.MENU_ITEM_SELECT, onReplicate);
+				
+				const cmiClear:ContextMenuItem = new ContextMenuItem("Clear interpretation");
+				cmiClear.addEventListener(ContextMenuEvent.MENU_ITEM_SELECT, onClear);
+				
+				vcm = new ContextMenu();
+				vcm.hideBuiltInItems();
+				vcm.customItems = [cmiCopy, cmiReplicate, cmiClear];
+				
+				navvert.contextMenu = vcm;
+				
+			}
+			
+			protected function onProjectChanged(event:IndexChangeEvent):void
+			{
+				var tst:TimeSyncTask = dropdownProject.selectedItem as TimeSyncTask;
+				if (tst != null) {
+					var arr:ArrayCollection = getProjectTsas(global.assignments, tst.project_id);
+					dropdownScenes.dataProvider = arr;
+					global.project_id = tst.project_id;
+					global.plot_size = tst.plot_size;
+					global.target_day = tst.target_day;
+//					if (arr.length > 0)
+//						dropdownScenes.selectedIndex = 0;
+					
+					plotModel.Plots.removeAll(); //clear all existing plots
+					chipPanel.chips.removeAll(); //clear chip viewer
+					plotModel.currentPlot = null;
+					trajectory.clearTrajectory();
+					plotsGrid.examplesOnly = false;
+				}
+			}
+			
+			protected function onSceneSelected(event:IndexChangeEvent):void
+			{
+				var tsa:Number = dropdownScenes.selectedItem as Number;
+				global.tsa = tsa;
+				global.examinee_id = -1;
+				
+				ExternalInterface.call("loadKml", global.project_id, tsa);
+				
+				trace("load all plots");
+				var cevent:PlotEvent = new PlotEvent(PlotEvent.PLOT_GET_ALL);
+				dispatchEvent(cevent);
+
+//				trace("load image list");
+//				var ievent:ImageListEvent = new ImageListEvent(ImageListEvent.IMAGE_LIST_GET);
+//				dispatchEvent(ievent);
+				
+				chipPanel.chips.removeAll(); //clear chip viewer
+				plotModel.currentPlot = null;
+				trajectory.clearTrajectory();
+				plotsGrid.examplesOnly = false;
+			}
+			
+			protected function login(event:MouseEvent):void
+			{
+				doLogin();
+			}
+			
+			private function doLogin():void {
+				if (txtUser.text.length > 0 && txtPass.text.length > 0) {
+					var uevent:UserEvent = new UserEvent(UserEvent.LOGIN, true, true);
+					uevent.usr = {user_name:txtUser.text, pass:txtPass.text};
+					dispatchEvent(uevent);
+				}
+			}
+			
+			protected function onSave(event:MouseEvent):void
+			{
+				saveInterpretations(plotModel.currentPlot, true);
+			}
+			
+			protected function onLogout(event:MouseEvent):void
+			{
+				dropdownProject.dataProvider.removeAll();
+				dropdownScenes.dataProvider.removeAll();
+				plotModel.Plots.removeAll(); //clear all existing plots
+				chipPanel.chips.removeAll(); //clear chip viewer
+				plotModel.currentPlot = null;
+				trajectory.clearTrajectory();
+				
+				txtPass.text="";
+				this.currentState = "login";
+			}
+			
+			[MessageHandler(selector="save_plot")]
+			public function savePlot(event:PlotEvent):void {
+				//auto save for interpreter only
+				if (global.user_role == GlobalModel.INTERPRETER) {
+					saveInterpretations(event.CurrentPlot);
+				}
+				else {
+					//for arbitor only autosave when something changed.
+					if (event.CurrentPlot.isModified || event.CurrentPlot.isDirty) {
+						saveInterpretations(event.CurrentPlot);
+					}
+				}
+			}
+			
+			private function saveInterpretations(plot:Plot, force:Boolean=false):void {
+				if (global.user_id == 9999) //disable save for viewer
+					return; 
+				
+				if (plot.isModified || plot.isDirty || force || global.user_role == GlobalModel.ARBITOR) {
+					//TODO: check to make sure both vertex and neighbor and comments are saved.
+					try {
+						var interp:int = global.examinee_id > 0 ? global.examinee_id : global.interpreter.user_id; 
+						
+						
+						trace(plot.vertexSqlValue);
+						service.saveVertex(plot.project_id, plot.tsa, plot.plotid, interp, plot.vertexSqlValue);
+	
+						//trace(plot.neighborSqlValue);
+						//service.saveNeighbor(plot.project_id, plot.tsa, plot.plotid, global.interpreter.user_id, plot.neighborSqlValue);
+						
+						service.saveComment(plot.project_id, plot.tsa, plot.plotid, interp, plot.comment, 
+							plot.isExample?1:0, plot.complete?1:0, plot.isWetland?1:0,plot.uncertainty);
+						
+						plot.markPristine();
+						plot.is_complete = plot.complete?1:0;
+						plotModel.plotModified();
+					}
+					catch (e:*) {
+						plot.is_complete = 0;
+						plot.isModified = true;
+					}
+				}
+			}
+			
+//			protected function slider_changeHandler(event:Event):void
+//			{
+//				updateChip();
+//			}
+			
+			protected function onSize_changeHandler(event:Event):void
+			{
+				var num:Number = parseInt(txtchipsize.text);
+				if (isNaN(num)) 
+					num = 195;
+				num = num<50?50:num;
+				num = num>255?255:num;
+				//slider.value = num;
+				updateChip(num);
+			}
+			
+			protected function onPlotSize_changeHandler(event:Event):void
+			{
+				return; //do not allow plotsize change as it is controled by project settings
+				
+				var num:Number = parseInt(txtplotsize.text);
+				if (isNaN(num)) return;
+				num = num<=0?1:num;
+				num = num>5?5:num;
+				global.plot_size = num;
+				plotModel.plotSize = num;
+				var cplot:Plot = plotModel.currentPlot;
+				if (cplot==null) return;
+				this.dispatchEvent(new PlotEvent(PlotEvent.PLOT_SPECTRAL_GET, cplot));
+				chipPanel.refresh();
+			}
+			
+			private function updateChip(num:Number):void {
+				global.view_size = num;
+				chipPanel.refresh();
+				this.setFocus();
+			}
+
+			protected function gotoHelp(event:MouseEvent):void
+			{
+				navigateToURL(new URLRequest("definition_v1.1.pdf"), "_blank");
+			}
+			
+			protected function showMap(event:MouseEvent):void {
+				ExternalInterface.call("showGMap()");
+			}
+			
+			protected function addNewNeighbor(event:MouseEvent):void
+			{
+				onAddNew(null);
+			}
+			
+			protected function mmenu_itemClickHandler(event:MenuEvent):void {
+				// TODO Auto-generated method stub
+				if (event.label == "Definitions") {
+					navigateToURL(new URLRequest("VertexSegmentLabelDefinitions.pdf"), "_blank");
+				}
+				else if (event.label == "FAQs") {
+					navigateToURL(new URLRequest("InterpRuleSet.pdf"), "_blank");
+				}
+			}
+			
+			protected function onShowExamples(event:Event):void {
+				plotsGrid.plotList.selectedIndex = -1;
+				//chipPanel.chips.removeAll(); //clear chip viewer
+				chipPanel.chips = new ArrayCollection();
+				plotModel.currentPlot = null;
+				trajectory.clearTrajectory();
+			}
+		]]>
+	</fx:Script>
+	<s:VGroup includeIn="App" width="100%" height="100%" paddingBottom="10" paddingLeft="10"
+			  paddingRight="10">
+		<mx:ControlBar width="100%" height="35">
+			<s:HGroup verticalAlign="middle">
+				<s:Label fontSize="18" fontWeight="bold" text="TimeSync - v2.1"/>
+				<s:Spacer width="3"/>
+				<s:HGroup verticalAlign="middle">
+					<s:Label text="Chip Size"/>
+					<!--
+					<s:HSlider id="slider" width="80" change="slider_changeHandler(event)"
+							   maximum="255" minimum="50" value="175"/>
+					<s:TextInput id="txtchipsize" text="{slider.value}" width="27" enter="onSize_changeHandler(event)"/>
+					-->
+					<s:TextInput id="txtchipsize" text="195" width="27" enter="onSize_changeHandler(event)"/>
+					<s:Spacer width="1"/>					
+					<s:Label text="Plot Size"/>
+					<s:TextInput id="txtplotsize" text="{global.plot_size}" width="25" enabled="false" enter="onPlotSize_changeHandler(event)"/>
+				</s:HGroup>
+				<s:Spacer width="3"/>
+				<s:Label text="Project:"/>
+				<s:DropDownList id="dropdownProject" width="136"
+								labelField="project_code"
+								change="onProjectChanged(event)" />
+				<s:Label text="Scene:"/>
+				<s:DropDownList id="dropdownScenes" width="70" change="onSceneSelected(event)" />
+				<s:Spacer y="10" width="100%" height="2"/>
+				<s:Button label="Save" click="onSave(event)"/>
+<!--
+				<s:Button label="Logout" click="onLogout(event)"/>
+-->				
+				
+				<!--
+				<s:Button label="Help" click="gotoHelp(event)"/>
+				-->
+				<mx:MenuBar id="mmenu" labelField="@label" itemClick="mmenu_itemClickHandler(event)">
+					<fx:XMLList>
+						<menuitem label="Help">
+							<menuitem label="Definitions"/>
+							<menuitem label="FAQs"/>
+						</menuitem>
+					</fx:XMLList>
+				</mx:MenuBar>
+				<s:ToggleButton label="Google Earth" click="showMap(event)"/>
+				<s:Spacer width="2"/>
+				<s:CheckBox id="checkExample" label="Examples Only" selected="@{plotsGrid.examplesOnly}" change="onShowExamples(event)"/>
+			</s:HGroup>
+		</mx:ControlBar>
+		<mx:HDividedBox width="100%" height="100%">
+			<s:HGroup width="100%" height="100%">
+				<ts:PlotPanel id="plotsGrid" width="75" height="100%" title="Plots"/>
+				<ts:ChipPanel id="chipPanel" width="100%" height="100%"/>
+			</s:HGroup>
+			<mx:VDividedBox width="45%" height="100%">
+				<!--
+				<s:Panel title="Spectral Trajectory" width="100%" height="100%"/>
+				-->
+				<ts:TrajectoryPanel id="trajectory" width="100%" height="65%" title="Trajectory"/>
+				<mx:VDividedBox width="100%" height="100%">
+					<mx:TabNavigator width="100%" height="100%">
+						<s:NavigatorContent width="100%" height="100%" label="Segments">
+							<ts:SegmentGridPanel id="segmentsDG" 
+												 width="100%" height="100%"
+												 segments="{plotModel.currentPlot.segments}"/>
+						</s:NavigatorContent>
+						<s:NavigatorContent id="navvert" width="100%" height="100%" label="Vertices">
+							<ts:VertexGridPanel id="vertexDG" 
+												 width="100%" height="100%"
+												 vertices="{plotModel.currentPlot.vertices}"/>
+						</s:NavigatorContent>
+						<!--
+						<s:NavigatorContent id="navcont" width="100%" height="100%" label="Neighborhood">
+							<ts:NeighborGridPanel id="neighborDG"
+												  width="100%" height="100%"
+												  doubleClickEnabled="true"
+												  doubleClick="addNewNeighbor(event)"
+												  neighbors="{plotModel.currentPlot.neighbors}"/>
+						</s:NavigatorContent>
+						-->
+					</mx:TabNavigator>
+					<ts:PlotPropertyPanel title="Comments" width="100%" height="185" plot="{plotModel.currentPlot}"/>
+				</mx:VDividedBox>
+			</mx:VDividedBox>
+		</mx:HDividedBox>
+	</s:VGroup>
+	<s:Panel title="TimeSync Login" includeIn="login" width="300" height="250" horizontalCenter="-39" verticalCenter="-36">
+		<s:VGroup x="0" y="0" width="100%" paddingLeft="50" paddingTop="25">
+			<s:Label text="User Name"/>
+			<s:TextInput id="txtUser" width="200"/>
+			<s:Label paddingTop="10" text="Password"/>
+			<s:TextInput id="txtPass" width="200" displayAsPassword="true"/>
+			<!--
+			<s:Label paddingTop="10" text="Role:"/>
+			<s:DropDownList id="role" width="200" selectedIndex="0">
+				<s:dataProvider>
+					<s:ArrayList>
+						<fx:String>Interpreter</fx:String>
+						<fx:String>Arbitrator</fx:String>
+					</s:ArrayList>
+				</s:dataProvider>
+			</s:DropDownList>
+			-->
+			<s:Spacer height="20"/>
+			<s:HGroup width="200" horizontalAlign="center">
+				<s:Button label="Login" click="login(event)"/>
+			</s:HGroup>
+			<s:Label id="message" text=""/>
+		</s:VGroup>
+	</s:Panel>
+</s:Application>

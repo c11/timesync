@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:GridItemEditor xmlns:fx="http://ns.adobe.com/mxml/2009" 
+				  xmlns:s="library://ns.adobe.com/flex/spark" 
+				  xmlns:mx="library://ns.adobe.com/flex/mx"
+				  xmlns:parsley="http://www.spicefactory.org/parsley"
+				  depth="99"
+				  width="388" height="350" xmlns:components="org.larse.components.*">
+	<fx:Declarations>
+		<s:RadioButtonGroup id="radiogroupConfidence"/>
+		<s:RadioButtonGroup id="radiogroupMagnitude"/>
+		<s:RadioButtonGroup id="radiogroupSize"/>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	
+	<fx:Metadata>
+		[Event(name="plot_modified",type="org.larse.events.PlotEvent")]
+		[ManagedEvents("plot_modified")]
+	</fx:Metadata>
+	
+	<fx:Script>
+		<![CDATA[
+			import mx.collections.ArrayCollection;
+			import mx.events.FlexEvent;
+			
+			import org.larse.events.PlotEvent;
+			import org.larse.vos.Neighbor;
+			
+			/**
+			 * data field
+			 */
+			override public function save():Boolean {
+				var v:Neighbor = data as Neighbor;
+				if (process.selectedItem!=null) {
+					if (v.change_process != process.selectedItem)
+						v.isDirty = true;
+					v.change_process = process.selectedItem;
+				}
+				else {
+					if (v.change_process != null)
+						v.isDirty = true;
+					v.change_process = null;
+				}
+
+				var nrmag:String = radiogroupMagnitude.selectedValue==null?"":radiogroupMagnitude.selectedValue.toString();
+				if (v.relative_magnitude != nrmag)
+					v.isDirty = true;
+				v.relative_magnitude =nrmag;
+				
+				var ps:String = radiogroupSize.selectedValue==null?"":radiogroupSize.selectedValue.toString();
+				if (v.patch_size != ps)
+					v.isDirty = true;
+				v.patch_size = ps;
+				
+				if (v.centroid_direction != celldir.direction)
+					v.isDirty = true;
+				v.centroid_direction = celldir.direction;
+				
+				if (v.plot_included != (checkboxIncluded.selected ? 1 : 0))
+					v.isDirty = true;
+				
+				v.plot_included = checkboxIncluded.selected ? 1 : 0;
+				
+				this.dispatchEvent(new PlotEvent(PlotEvent.PLOT_MODIFIED));
+				
+				return true;
+			}
+			
+			override public function set data(value:Object):void
+			{
+				super.data = value;
+				var v:Neighbor = data as Neighbor;
+				
+				radiogroupMagnitude.selectedValue = v.relative_magnitude;
+				radiogroupSize.selectedValue = v.patch_size;
+				celldir.direction = v.centroid_direction;
+				checkboxIncluded.selected = v.plot_included == 1;
+			}
+
+			/**
+			 * value field
+			 */
+			override public function set value(newValue:Object):void {
+				if (newValue == null)
+					return;
+				process.selectedItem = newValue;
+			}
+			
+			override public function get value():Object {
+				if (process.selectedItem != null)
+					return process.selectedItem;
+				else
+					return null;
+			}
+		]]>
+	</fx:Script>
+	<s:Rect id="bgRect" top="1" left="1" bottom="1" right="1">
+		<s:fill>
+			<s:SolidColor id="bgFill" color="0xFFFFFF" />
+		</s:fill>
+	</s:Rect>
+	<s:PopUpAnchor displayPopUp="true">
+		<s:BorderContainer>
+			<s:VGroup>
+				<s:VGroup left="5" right="5" top="5" 
+						  paddingBottom="5" paddingLeft="5" 
+						  paddingRight="5" paddingTop="5">
+					<s:DropDownList id="process" width="175">
+						<s:dataProvider>
+							<s:ArrayList>
+								<!--
+								<fx:String>Stable</fx:String>
+								-->
+								<fx:String>Harvest</fx:String>
+								<fx:String>Fire</fx:String>
+								<fx:String>Stress</fx:String>
+								<fx:String>Wind</fx:String>
+								<fx:String>Water</fx:String>
+								<fx:String>Mechanical</fx:String>
+								<fx:String>Debris</fx:String>
+								<fx:String>Volcano</fx:String>
+								<fx:String>Delay</fx:String>
+								<!--
+								<fx:String>Maturation</fx:String>
+								<fx:String>Recovery</fx:String>
+								-->
+								<fx:String>Other</fx:String>
+							</s:ArrayList>
+						</s:dataProvider>
+					</s:DropDownList>
+				</s:VGroup>
+				<s:VGroup width="100%" paddingBottom="5" paddingLeft="5" paddingRight="5" paddingTop="5">
+					<s:Label fontWeight="bold" text="Patch Relative Magnitude"/>
+					<s:HGroup width="60%" horizontalAlign="center" textAlign="center">
+						<s:RadioButton label="High" groupName="radiogroupMagnitude"/>
+						<s:RadioButton label="Medium" groupName="radiogroupMagnitude"/>
+						<s:RadioButton label="Low" groupName="radiogroupMagnitude"/>
+					</s:HGroup>
+				</s:VGroup>
+				<s:VGroup width="100%" paddingBottom="5" paddingLeft="5" paddingRight="5" paddingTop="5">
+					<s:Label fontWeight="bold" text="Patch Size"/>
+					<s:HGroup width="60%" horizontalAlign="center" textAlign="center">
+						<s:RadioButton label="1 - 5 pixels" groupName="radiogroupSize"/>
+						<s:RadioButton label="6 - 11 pixels" groupName="radiogroupSize"/>
+						<s:RadioButton label="> 11 pixels" groupName="radiogroupSize"/>
+					</s:HGroup>
+				</s:VGroup>
+				<s:VGroup width="100%" paddingBottom="5" paddingLeft="5" paddingRight="5" paddingTop="5">
+					<s:Label fontWeight="bold" text="Centroid Direction"/>
+					<components:CellDirection id="celldir"/>
+				</s:VGroup>
+				<s:VGroup width="100%" paddingBottom="5" paddingLeft="5" paddingRight="5" paddingTop="5">
+					<!--
+					<s:Label fontWeight="bold" text="Include plot?"/>
+					-->
+					<s:CheckBox id="checkboxIncluded" label="Plot included"/>
+				</s:VGroup>
+				<!--
+				<s:VGroup width="100%" paddingBottom="5" paddingLeft="5" paddingRight="5" paddingTop="5">
+					<s:Label fontWeight="bold" text="Confidence"/>
+					<s:HGroup width="60%" horizontalAlign="center" textAlign="center">
+						<s:RadioButton label="High" groupName="radiogroupConfidence"/>
+						<s:RadioButton label="Medium" groupName="radiogroupConfidence"/>
+						<s:RadioButton label="Low" groupName="radiogroupConfidence"/>
+					</s:HGroup>
+				</s:VGroup>
+				-->
+			</s:VGroup>
+		</s:BorderContainer>
+	</s:PopUpAnchor>
+</s:GridItemEditor>

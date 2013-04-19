@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:GridItemRenderer xmlns:fx="http://ns.adobe.com/mxml/2009" 
+					xmlns:s="library://ns.adobe.com/flex/spark" 
+					xmlns:mx="library://ns.adobe.com/flex/mx" clipAndEnableScrolling="true">
+	
+	<fx:Script>
+		<![CDATA[
+			
+			[Bindable]
+			private var color:uint = 0xffffff;
+			
+			[Bindable]
+			private var al:Number = 1.0;
+			
+			override public function prepare(hasBeenRecycled:Boolean):void {
+				if (!data.complete) {
+					color = 0xF77F7F;
+					al = 0.5;
+				}
+				else {
+					color = 0xffffff;
+					al = 1.0;
+				}
+			}
+		]]>
+	</fx:Script>
+	
+	<s:Rect top="0" bottom="0" right="0" left="0">
+		<s:fill>
+			<s:SolidColor color="{color}" alpha="{al}"/>
+		</s:fill>
+	</s:Rect>
+
+	<s:CheckBox id="chk" label="" selected="@{data.isEphemeral}" horizontalCenter="0"/>
+	
+</s:GridItemRenderer>

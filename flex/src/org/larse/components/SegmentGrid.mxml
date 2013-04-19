@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Panel xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" width="400" height="300">
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import mx.collections.ArrayCollection;
+			import spark.skins.spark.DefaultGridItemRenderer;
+			import org.larse.renderer.TsDataGridItemRender;
+			import org.larse.tsclass.TsSegment;
+			
+			[Bindable]
+			public var segments:ArrayCollection = new ArrayCollection();
+		
+			private function renderFunction(item:Object, column:GridColumn):ClassFactory {
+				var v:TsSegment = item as TsSegment;
+				//if (v.complete)
+					return new ClassFactory(DefaultGridItemRenderer);
+				//else
+				//	return new ClassFactory(TsDataGridItemRender);
+			}
+		]]>
+	</fx:Script>
+	
+	<s:DataGrid id="segmentDG" width="100%" height="100%"
+				dataProvider="{segments}" 
+				editable="true" >
+		<s:columns>
+			<s:ArrayList>
+				<s:GridColumn dataField="startImage" 
+							  headerText="Start" 
+							  itemRendererFunction="renderFunction"
+							  editable="false"/>
+				<s:GridColumn dataField="endImage" 
+							  headerText="End" 
+							  editable="false"/>
+				<s:GridColumn dataField="changeProcess" 
+							  headerText="Change Process"
+							  itemEditor="org.larse.components.ChangeProcessEditor"/>
+				<s:GridColumn dataField="processConfidence" 
+							  headerText="Process Confidence"
+							  itemEditor="org.larse.components.ConfidenceEditor"/>
+				<s:GridColumn dataField="@isEphemeral" 
+							  headerText="Ephemeral">
+					<s:itemRenderer>
+						<fx:Component>
+							<s:CheckBox selected="{data.@isEphemeral}" click="{data.@isEphemeral=!data.@isEphemeral;}"
+						</fx:Component>
+					</s:itemRenderer>
+				</s:GridColumn>
+				<!--
+				<s:GridColumn dataField="confidenceScore" 
+							  headerText="Score"
+							  editable="false"/>
+				-->
+			</s:ArrayList>
+		</s:columns >
+	</s:DataGrid> 
+</s:Panel>

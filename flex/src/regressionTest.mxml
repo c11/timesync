@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Application xmlns:fx="http://ns.adobe.com/mxml/2009" 
+			   xmlns:s="library://ns.adobe.com/flex/spark" 
+			   xmlns:mx="library://ns.adobe.com/flex/mx" minWidth="955" minHeight="600">
+	
+	<fx:Script>
+		<![CDATA[
+			import mx.collections.ArrayCollection;
+
+			import org.larse.tsclass.LinearRegression;
+			import org.larse.tsclass.RegressionResult;
+			protected function regress(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				var x:ArrayCollection = new ArrayCollection(new Array(1,2,3,4,5));
+				var y:ArrayCollection = new ArrayCollection(new Array(3.88, 6.59, 9.11, 11.47, 13.63));
+				var r:RegressionResult = LinearRegression.regress1(x, y);
+				
+				txt.text += r.slope + "  | \n";
+				txt.text += r.intercept + "  | \n";
+				txt.text += r.rsquared + "  | \n";
+
+			}
+		]]>
+	</fx:Script>
+	
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	<s:TextArea x="38" y="39" width="361" height="393" id="txt"/>
+	<s:Button x="104" y="485" label="Button" click="regress(event)"/>
+</s:Application>

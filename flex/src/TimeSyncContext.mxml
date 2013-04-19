@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<fx:Object xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		   xmlns:s="library://ns.adobe.com/flex/spark" 
+		   xmlns:mx="library://ns.adobe.com/flex/mx" 
+		   xmlns:parsley="http://www.spicefactory.org/parsley" 
+		   xmlns:model="org.larse.model.*"
+		   >
+	
+	<fx:Declarations>
+		<model:PlotModel />
+		<model:ImageListModel/>
+		<model:SpectralPropertyModel/>
+		<model:GlobalModel/>
+
+		<parsley:DynamicCommand type="org.larse.controllers.PlotGetAllCommand" selector="get_all_plots" />
+		<parsley:DynamicCommand type="org.larse.controllers.ImageListGetCommand" selector="get_image_list" />
+		<parsley:DynamicCommand type="org.larse.controllers.SpectralPropertyGetCommand" selector="get_spectral_properties" />
+		
+		<parsley:DynamicCommand type="org.larse.controllers.PlotVertexLoadCommand" selector="load_verteices" />
+		<parsley:DynamicCommand type="org.larse.controllers.PlotNeighborLoadCommand" selector="load_neighbors" />
+		<parsley:DynamicCommand type="org.larse.controllers.PlotCommentLoadCommand" selector="load_comments" />
+
+		<parsley:DynamicCommand type="org.larse.controllers.PlotSpectralGetCommand" selector="get_plot_spectrals" />
+		
+		<parsley:DynamicCommand type="org.larse.controllers.AssignmentGetCommand" selector="get_user_assignments" />
+
+		<parsley:DynamicCommand type="org.larse.controllers.LoginCommand" selector="login" />
+		
+		<!--
+			QA viewer
+		-->
+		<parsley:DynamicCommand type="org.larse.controllers.PlotGetAllChipsCommand" selector="plot_load_all_chip" />
+		<parsley:DynamicCommand type="org.larse.controllers.PlotOverrideChipCommand" selector="plot_override_chip" />
+		
+		
+	</fx:Declarations>
+</fx:Object>

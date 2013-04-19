@@ -1,0 +1,22 @@
+/* CSS file */
+@namespace s "library://ns.adobe.com/flex/spark";
+@namespace mx "library://ns.adobe.com/flex/mx";
+@namespace larse "org.larse.containers.customtitlewindow.*";
+
+larse|CustomTitleWindow {
+	skin-class: ClassReference("org.larse.containers.customtitlewindow.skins.CustomTitleWindowSkin");
+	resizeCursorHorizontalSkin: Embed(source="/org/larse/containers/customtitlewindow/assets/resizeCursorH.gif");
+	resizeCursorHorizontalXOffset: -10;    
+	resizeCursorHorizontalYOffset: -10;    
+	resizeCursorVerticalSkin: Embed(source="/org/larse/containers/customtitlewindow/assets/resizeCursorV.gif");
+	resizeCursorVerticalXOffset: -10;
+	resizeCursorVerticalYOffset: -10;
+	resizeCursorTopLeftBottomRightSkin: Embed(source="/org/larse/containers/customtitlewindow/assets/resizeCursorTLBR.gif");
+	resizeCursorTopLeftBottomRightXOffset: -10;
+	resizeCursorTopLeftBottomRightYOffset: -10;
+	resizeCursorTopRightBottomLeftSkin: Embed(source="/org/larse/containers/customtitlewindow/assets/resizeCursorTRBL.gif");
+	resizeCursorTopRightBottomLeftXOffset: -10;
+	resizeCursorTopRightBottomLeftYOffset: -10;
+	cornerHandleSize: 10;
+	edgeHandleSize: 4;
+}
