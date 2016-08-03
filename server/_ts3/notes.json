@@ -1,0 +1,34 @@
+{
+  "notes": [
+    {
+      "wetland": {
+        "description": "Wetland",
+        "active": true
+      }
+    },
+    {
+      "mining": {
+        "description": "Mining",
+        "active": false
+      }
+    },
+    {
+      "rowCrop": {
+        "description": "Row crop",
+        "active": false
+      }
+    },
+    {
+      "orchardTreeFarm": {
+        "description": "Orchard / Tree farm",
+        "active": false
+      }
+    },
+    {
+      "vineyardsOtherWoody": {
+        "description": "Vineyards / Other woody",
+        "active": false
+      }
+    }
+  ]
+}

@@ -1,0 +1,163 @@
+[
+   {
+      "type":"change",
+      "identifier":"HARV",
+      "label":"Harvest",
+      "note_identifier":"THN",
+      "note_label":"Thinning"
+   },
+   {
+      "type":"change",
+      "identifier":"CNVR",
+      "label":"Conversion",
+      "note_identifier":"WTD",
+      "note_label":"Wetland drainage"
+   },
+   {
+      "type":"change",
+      "identifier":"HARV",
+      "label":"Harvest",
+      "note_identifier":"CLC",
+      "note_label":"Clearcut"
+   },
+   {
+      "type":"change",
+      "identifier":"STBL",
+      "label":"Stable",
+      "note_identifier":"APH",
+      "note_label":"Airphoto only"
+   },
+   {
+      "type":"change",
+      "identifier":"FIRE",
+      "label":"Fire",
+      "note_identifier":"APH",
+      "note_label":"Airphoto only"
+   },
+   {
+      "type":"change",
+      "identifier":"GROW",
+      "label":"Growth",
+      "note_identifier":"APH",
+      "note_label":"Airphoto only"
+   },
+   {
+      "type":"change",
+      "identifier":"FIRE",
+      "label":"Fire",
+      "note_identifier":"SPF",
+      "note_label":"Site-prep fire"
+   },
+   {
+      "type":"change",
+      "identifier":"DEBR",
+      "label":"Debris",
+      "note_identifier":"APH",
+      "note_label":"Airphoto only"
+   },
+   {
+      "type":"change",
+      "identifier":"FIRE",
+      "label":"Fire",
+      "note_identifier":"PRS",
+      "note_label":"Prescribed"
+   },
+   {
+      "type":"change",
+      "identifier":"HYDR",
+      "label":"Hydrology",
+      "note_identifier":"APH",
+      "note_label":"Airphoto only"
+   },
+   {
+      "type":"change",
+      "identifier":"FIRE",
+      "label":"Fire",
+      "note_identifier":"NTR",
+      "note_label":"Natural"
+   },
+   {
+      "type":"change",
+      "identifier":"HYDR",
+      "label":"Hydrology",
+      "note_identifier":"RLF",
+      "note_label":"Reservoir \/ Lake flux"
+   },
+   {
+      "type":"change",
+      "identifier":"HYDR",
+      "label":"Hydrology",
+      "note_identifier":"FLD",
+      "note_label":"Flooding"
+   },
+   {
+      "type":"change",
+      "identifier":"WIND",
+      "label":"Wind",
+      "note_identifier":"APH",
+      "note_label":"Airphoto only"
+   },
+   {
+      "type":"change",
+      "identifier":"DCLN",
+      "label":"Decline",
+      "note_identifier":"APH",
+      "note_label":"Airphoto only"
+   },
+   {
+      "type":"change",
+      "identifier":"OTH",
+      "label":"Other",
+      "note_identifier":"APH",
+      "note_label":"Airphoto only"
+   },
+   {
+      "type":"change",
+      "identifier":"HARV",
+      "label":"Harvest",
+      "note_identifier":"APH",
+      "note_label":"Airphoto only"
+   },
+   {
+      "type":"change",
+      "identifier":"CNVR",
+      "label":"Conversion",
+      "note_identifier":"APH",
+      "note_label":"Airphoto only"
+   },
+   {
+      "type":"landuse",
+      "identifier":"AGR",
+      "label":"Agriculture",
+      "note_identifier":"VTW",
+      "note_label":"Vineyard \/ Other \/Woody"
+   },
+   {
+      "type":"landuse",
+      "identifier":"AGR",
+      "label":"Agriculture",
+      "note_identifier":"OTF",
+      "note_label":"Orchard \/ Tree farm"
+   },
+   {
+      "type":"landuse",
+      "identifier":"AGR",
+      "label":"Agriculture",
+      "note_identifier":"RCP",
+      "note_label":"Row crop"
+   },
+   {
+      "type":"landuse",
+      "identifier":"DEV",
+      "label":"Developed",
+      "note_identifier":"MNG",
+      "note_label":"Mining"
+   },
+   {
+      "type":"landuse",
+      "identifier":"FOR",
+      "label":"Forest",
+      "note_identifier":"WTL",
+      "note_label":"Wetland"
+   }
+]
