@@ -114,7 +114,7 @@ def getPlotBox(image, point, chipSize):
 
 def exportSpectrals(project_id, plotid, collection, pixel):
 	print '\t\textract spectral values'
-	final = ee.ImageCollection(collection).map(lambda image: image.reduceRegions(ee.FeatureCollection([pixel]), 'toList', scale=30, tileScale=16), False)
+	final = ee.ImageCollection(collection).map(lambda image: image.reduceRegions(ee.FeatureCollection([pixel]), 'first', scale=30, tileScale=16), False)
 
 	this_job = 'spectrals_project_%d_plot_%d' % (project_id, plotid)
 	this_folder = 'prj_%s' % project_id
