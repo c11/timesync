@@ -20,9 +20,7 @@ file is processed using gdal_translate.
 Due to the large number of bands, using gdal_translate to unstack the file is a very slow process.
 This script should be wrapped in multiprocessing pool when it is called to unstack a set of plots.
 
-TODO:
-	Since each stack file is not large in size, evaluate direct unstacking without gdal_translate.
-	This might speed up the unstacking process.
+Updated to remove gdal_translate step
 
 Note:
 	Even though the stacked image is faster in generation, the current unstacking process make it 
@@ -41,6 +39,9 @@ Single Thread Example:
 """
 
 import os
+from PIL import Image
+from osgeo import gdal
+import numpy as np
 
 def unstack(spectral_file, root_dir):
 	"""It is assumed that the file name pattern are
@@ -119,10 +120,11 @@ def unstackSingleFile(stack_file, ids, output_dir):
 		os.makedirs(output_dir)
 
 	print 'processing', stack_file
-	CMD = 'gdal_translate -of PNG -b %d -b %d -b %d %s %s'
+	ds = gdal.Open(stack_file)
+	dat = ds.ReadAsArray()
+
 	for idx in range(1, len(ids)+1):
 		id = ids[idx-1]
-		# this_dir = os.path.join(output_dir, 'prj_%s/plot_%s' % (id[1], id[2]))
 		this_dir = os.path.join(output_dir, 'plot_%s' % id[2])
 		if not os.path.exists(this_dir):
 			os.makedirs(this_dir)
@@ -132,7 +134,7 @@ def unstackSingleFile(stack_file, ids, output_dir):
 		print '\t', this_png
 		this_png = os.path.join(this_dir, this_png)
 
-		print(CMD % (idx*3+1, idx*3+2, idx*3+3, stack_file, this_png))
-		os.system(CMD % (idx*3+1, idx*3+2, idx*3+3, stack_file, this_png))
+		this_image = Image.fromarray(np.transpose(dat[(idx*3):(idx*3+3)], [1,2,0]))
+		this_image.save(this_png)
 
 
