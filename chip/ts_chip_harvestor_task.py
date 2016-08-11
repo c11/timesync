@@ -27,32 +27,26 @@ VIS_432 = {"bands": ["B4", "B3", "B2"], "min": [912, 0, 0], "max": [3880, 1962, 
 VIS_SET = {'tc': VIS_BGW, 'b743': VIS_743, 'b432': VIS_432}
 
 BAND_NAMES = ["B1", "B2", "B3", "B4", "B5", "B7", 'cfmask']
+SR_SET = {'LT5': 'LANDSAT/LT5_SR', 'LE7': 'LANDSAT/LE7_SR', 'LC8': 'LANDSAT/LC8_SR'}
+BAND_SET = {'LT5': [0, 1, 2, 3, 4, 5, 6], 'LE7': [0, 1, 2, 3, 4, 5, 6], 'LC8': [1, 2, 3, 4, 5, 6, 7]}
 
-def getImageCollection(point):
+def getImageCollection(sensor, point):
 	"""construct LT5 and LE7 image collection for a given location.
 
 	Args:
-		year (int): image year
+		sensor (string): sensor name
 		point (ee.Geometry.Point): pixel sample
 
 	Returns:
 		an image collection
 	"""
+	collection = ee.ImageCollection(SR_SET[sensor])\
+		.filterBounds(point)\
+		.select(BAND_SET[sensor], BAND_NAMES)
+		# .map(lambda img: img.set('YD', ee.Date(img.get('system:time_start')).format('YD'))) \
+		# .distinct('YD')
 
-	oli_collection = ee.ImageCollection('LANDSAT/LC8_SR') \
-						.filterBounds(point) \
-						.select([1, 2, 3, 4, 5, 6, 7], BAND_NAMES)
-
-
-	le7_collection = ee.ImageCollection('LANDSAT/LE7_SR') \
-						.filterBounds(point) \
-						.select([0, 1, 2, 3, 4, 5, 6], BAND_NAMES)
-
-	lt5_collection = ee.ImageCollection('LANDSAT/LT5_SR') \
-						.filterBounds(point) \
-						.select([0, 1, 2, 3, 4, 5, 6], BAND_NAMES)
-
-	return lt5_collection.merge(le7_collection).merge(oli_collection).sort('system:time_start')
+	return collection.sort('system:time_start')
 
 
 def tcTransform(image):
@@ -68,7 +62,7 @@ def tcTransform(image):
 
 	return ee.Image(brightness).addBands(greenness).addBands(wetness).select([0,1,2], ['B','G','W'])
 
-def getChips(project_id, plotid, collection, chip_name, vis, poly, crs):
+def getChips(sr, project_id, plotid, collection, chip_name, vis, poly, crs):
 	"""retrieve image chips.
 
 	Args:
@@ -76,16 +70,16 @@ def getChips(project_id, plotid, collection, chip_name, vis, poly, crs):
 		vis (dictionary): visualization parameters.
 		point (ee.Geometry.Point): pixel sample.
 		size (int): image chip dimension in pixels.
-
+`
 	Returns:
 		none
 	"""
-	print '\t\t', 'chipping', project_id, plotid, chip_name
+	print '\t\t', 'chipping', sr, project_id, plotid, chip_name
 
 	first = ee.Image(collection.first()).visualize(**vis).unmask()
 	result = collection.iterate(lambda img, prev: ee.Image(prev).addBands(ee.Image(img).visualize(**vis).unmask()), first)
 
-	this_job = 'project_%d_plot_%d_%s' % (project_id, plotid, chip_name)
+	this_job = '%s_project_%d_plot_%d_%s' % (sr, project_id, plotid, chip_name)
 	this_folder = 'prj_%s' % project_id
 
 	task = Export.image.toDrive(ee.Image(result), this_job, this_folder, this_job, None, poly.transform(None, 5).getInfo()['coordinates'], 30, crs, None, 1e13)
@@ -112,41 +106,41 @@ def getPlotBox(image, point, chipSize):
 
 	return crs, ee.Geometry.Polygon(coords, crs, False)
 
-def exportSpectrals(project_id, plotid, collection, pixel):
-	print '\t\textract spectral values'
+def exportSpectrals(sr, project_id, plotid, collection, pixel):
+	print '\t\textract spectral values:', sr
 	final = ee.ImageCollection(collection).map(lambda image: image.reduceRegions(ee.FeatureCollection([pixel]), 'first', scale=30, tileScale=16), False)
 
-	this_job = 'spectrals_project_%d_plot_%d' % (project_id, plotid)
+	this_job = 'spectrals_%s_project_%d_plot_%d' % (sr, project_id, plotid)
 	this_folder = 'prj_%s' % project_id
 
-	print '\t\texport spectral information'
+	print '\t\texport spectral information:', sr
 	task = Export.table(final.flatten().select(['.*'], None, False), this_job, {'driveFolder': this_folder})
 	task.start()
 
 def harvestChips(projectid, plotid, lnglat, **kwargs):
-
 	pixel = ee.Geometry.Point(lnglat)
 	poly = None
 
-	collection = getImageCollection(pixel)
+	for sr in SR_SET.keys():
 
-	N = collection.size().getInfo()
-	print '\t total number of image: %d' % N
-	if N == 0:
-		return
+		collection = getImageCollection(sr, pixel)
 
-	exportSpectrals(projectid, plotid, collection, pixel)
+		N = collection.size().getInfo()
+		print '\t total number of image: %d' % N
+		if N == 0:
+			return
 
-	crs, box = getPlotBox(collection.first(), pixel, 255)
+		exportSpectrals(sr, projectid, plotid, collection, pixel)
 
-	for cs in VIS_SET.keys():
-		if cs in kwargs.keys() and kwargs[cs]:
-			if cs == 'tc':
-				tc_collection = collection.map(tcTransform)
-				getChips(projectid, plotid, tc_collection, cs, VIS_SET[cs], box, crs)
-			else:
-				getChips(projectid, plotid, collection, cs, VIS_SET[cs], box, crs)
+		crs, box = getPlotBox(collection.first(), pixel, 255)
 
+		for cs in VIS_SET.keys():
+			if cs in kwargs.keys() and kwargs[cs]:
+				if cs == 'tc':
+					tc_collection = collection.map(tcTransform)
+					getChips(sr, projectid, plotid, tc_collection, cs, VIS_SET[cs], box, crs)
+				else:
+					getChips(sr, projectid, plotid, collection, cs, VIS_SET[cs], box, crs)
 
 def processPlots(plot_file, **kwargs):
 	with open(plot_file) as infh:
@@ -170,7 +164,7 @@ def processPlots(plot_file, **kwargs):
 				try:
 					print 'project: %d, plot: %d, trial: %d' % (project_id, plot_id, tries)
 
-					spectrals = harvestChips(project_id, plot_id, lnglat, **kwargs)
+					harvestChips(project_id, plot_id, lnglat, **kwargs)
 
 					success = True
 				except Exception as e:
