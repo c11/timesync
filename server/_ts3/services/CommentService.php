@@ -26,15 +26,17 @@ class CommentService extends BaseService {
 	 * @return int
 	 */
 	public function createComments($project_id, $tsa, $plotid, $interpreter, $comment, $is_complete=0, $is_example=0, $is_wetland=0, $uncertainty=0) {
+		try {
+			$this->connect(FALSE);
+
+		$es_comment = mysqli_real_escape_string($this->connection, $comment);
+
 		$update_sql = <<<DOQ
 			INSERT INTO $this->tablename
 			 (project_id, tsa, plotid, interpreter, comment, is_example, is_complete, is_wetland, uncertainty)
-			 VALUES ($project_id, $tsa, $plotid, $interpreter, '$comment', $is_example, $is_complete, $is_wetland, $uncertainty)
-			 ON DUPLICATE KEY UPDATE comment = '$comment', is_example=$is_example, is_complete=$is_complete, is_wetland=$is_wetland, uncertainty=$uncertainty
+			 VALUES ($project_id, $tsa, $plotid, $interpreter, '$es_comment', $is_example, $is_complete, $is_wetland, $uncertainty)
+			 ON DUPLICATE KEY UPDATE comment = '$es_comment', is_example=$is_example, is_complete=$is_complete, is_wetland=$is_wetland, uncertainty=$uncertainty
 DOQ;
-
-		try {
-			$this->connect(FALSE);
 
 			mysqli_query($this->connection, $update_sql);
 			$this->throwExceptionOnError();

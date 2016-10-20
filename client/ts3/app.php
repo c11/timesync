@@ -38,12 +38,12 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1">
 		<meta http-equiv="X-UA-Compatible" content="IE=edge"> <!--needed so that D3 will work in IE!-->
 		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
-		<link rel="stylesheet" href="timesync_style.min.css">
+		<link rel="stylesheet" href="timesync_style.css">
 		<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
 		<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js" charset="utf-8"></script>
 		<script type="text/javascript" src="jquery.mousewheel.min.js"></script>
-		<script type="text/javascript" src="specIndexStretch.min.js"></script>
+		<script type="text/javascript" src="specIndexStretch.js"></script>
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.imagesloaded/3.2.0/imagesloaded.pkgd.min.js"></script>
 
 		<script>
@@ -93,26 +93,30 @@
 					<p style="display:inline-block;">Plot</p>
 				</div>
 			</div>
-			<!--<button id="btnDoyCal" type="button" class="btn btn-default btn-sm" data-toggle="modal" data-target="#doyCalModal">Calendar</button> -->
-			<!--<button id="btnDoyCal" type="button" class="btn btn-default btn-sm">Calendar</button>-->	
-			<!--<button id="btnTsGuide" type="button" class="btn btn-default btn-sm" data-toggle="modal" data-target="#tsGuideModal">TS Guide</button> -->
-			<!--<button id="saveBtn" class="btn btn-default btn-xs" type="button" style="margin-right:15px; font-size:11px; margin-bottom:2px; height:21.7167px; text-align: left;">Save</button>-->
-			
+		
 			<div class="dropdown" style="display:inline-block; margin-right:15px;">
 				<button id="helpBtn" class="btn btn-default btn-xs dropdown-toggle" type="button" data-toggle="dropdown" style="font-size:11px; margin-bottom:2px; height:21.7167px; text-align: left;"> <!--; width:50px-->
 					Help
 				</button>
 				<ul id="helpList" class="dropdown-menu">
+					<li><a style="padding:0px;" target='_blank' href="TimeSync-How-To-Guide-V1.0.0.pdf">How-To Guide</a></li>
+					<li><a style="padding:0px;" target='_blank' href="Response-Design-Classes_v.3.0.1.pdf">Response Design</a></li>	 <!-- id="RDLi"-->							
 					<li id="doyCalLi">Calendar</li>
-					<li id="RDLi">Response Design</li>					
-					<li><a target='_blank' href="TimeSync-How-To-Guide-V1.0.0.pdf">UI Guide</a></li>
 					<li id="toolTips">Tool Tips<span id="toolTipsCheck" class="glyphicon glyphicon-none" style="margin-left:4px"></span></li>
 				</ul>
 			</div>
-
 			<button id="exportBtn" class="btn btn-default btn-xs dropdown-toggle" type="button" data-toggle="dropdown" style="font-size:11px; margin-bottom:2px; height:21.7167px; text-align: left;">
 				Export Data
 			</button>
+			<div style="display:inline-block">
+				<label class="switch switch-left-right">
+					<input id="examplePlots" class="switch-input" type="checkbox" autocomplete="off"/>
+<!-- 					<span class="switch-label" data-on="On" data-off="Off"></span>
+					<span class="switch-handle"></span> -->
+					Example Plots
+				</label>
+			</div>
+			
 
 		</div>
 		
@@ -131,22 +135,32 @@
 				<svg id="svg" width="740" height="250"></svg>
 				<div class="btn-group" role="group" aria-label="..." style="margin:-1px; display: inline-block;">
 					<div class="btn-group specPlotDrop" role="group">	
-						<button id="btnIndex" class="btn btn-default dropdown-toggle specPlotBtn" type="button">
+						<button id="btnIndex" class="btn btn-default dropdown-toggle specPlotBtn" type="button"  style="border-top-left-radius:0px">
 							<div><strong>Index/Band</strong>:<br><small>TC Wetness</small><span class="caret specPlot"></span></div>
 						</button>
-						<ul class="dropdown-menu specPlot" id="indexList">
-							<li id="B1">Band 1</li>
-							<li id="B2">Band 2</li>
-							<li id="B3">Band 3</li>
-							<li id="B4">Band 4</li>
-							<li id="B5">Band 5</li>
-							<li id="B7">Band 7</li>
+						<ul class="dropdown-menu specPlot indexList" id="indexList">
+							<li id="B1">Blue</li>
+							<li id="B2">Green</li>
+							<li id="B3">Red</li>
+							<li id="B4">NIR</li>
+							<li id="B5">SWIR1</li>
+							<li id="B7">SWIR2</li>
 							<li id="TCB">TC Brightness</li>
 							<li id="TCG">TC Greenness</li>
 							<li class="active" href="#" id="TCW">TC Wetness</li>
 							<li id="TCA">TC Angle</li>
 							<li id="NDVI">NDVI</li>
 							<li id="NBR">NBR</li>
+						</ul>
+					</div>
+					<div class="btn-group specPlotDrop" role="group">
+						<button id="btnChipSet" class="btn btn-default dropdown-toggle specPlotBtn" type="button">
+							<div><strong>Chip Set</strong>:<br><small>SWIR2,NIR,Red</small><span class="caret specPlot"></span></div>
+						</button>
+						<ul class="dropdown-menu specPlot chipSetList" id="chipSetList">
+							<li id="chipSetBGW">TM TC</li>
+							<li class="active" id="chipSet743">SWIR2,NIR,Red</li>
+							<li id="chipSet432">NIR,Red,Green</li>
 						</ul>
 					</div>
 					<div id="btnRed" class="btn-group specPlotDrop" role="group" style="display:none">					
@@ -222,15 +236,10 @@
 						</button>
 					</div>
 					 <div class="btn-group" role="group">
-						<button id="btnResetLocal" class="btn btn-default specPlotBtn" type="button">
+						<button id="btnResetLocal" class="btn btn-default specPlotBtn" type="button" style="border-bottom-right-radius:0px">
 							<Strong>Local Stretch</strong><br><span class="glyphicon glyphicon-repeat" aria-hidden="true"></span>	
 						</button>
 					</div>
-<!-- 					<div class="btn-group" role="group">
-						<button id="btnExpand" class="btn btn-default specPlotBtn" type="button">
-							<Strong>Expand Plot</strong><br><span id="allPointsDisplayThumb" class="glyphicon glyphicon-new-window" aria-hidden="true"></span>	
-						</button>
-					</div> -->
 				</div>
 			</div>
 			
@@ -254,12 +263,6 @@
 							<th>End</th>		
 							<th>Change Process</th>
 						</tr>
-<!-- 						<tr class="segment">
-							<td class="highlightIt"><span class="glyphicon glyphicon-search"></span></td>
-							<td>&nbsp;</td>
-							<td>&nbsp;</td>		
-							<td class="changeProcessInput formDrop"></td>
-						</tr> -->
 					</table>					
 				</div>
 								
@@ -267,7 +270,6 @@
 <!-- 					<p class="subHeader">Change process:</p> -->
 <!-- 					<div id="changeProcessSelection" class="formDropSelection" align="center"><span class="glyphicon glyphicon-triangle-bottom"></span></div> --> <!-- <div id="theSelection"></div> -->
 					<p class="subHeader" style="margin-top:3px">Change Process:</p>
-
 					<ul id="changeProcessList">
 						<li id="fire">Fire</li>
 						<li id="harvest">Harvest</li>
@@ -275,13 +277,12 @@
 						<li id="wind">Wind</li>
 						<li id="hydro">Hydrology</li>
 						<li id="debris">Debris</li>
-						<li id="growth">Growth</li>
+						<li id="growth">Growth/Recovery</li>
 						<li id="stable">Stable</li>
-						<li id="conversion">Conversion</li>
+						<li id="mechanical">Mechanical</li>
 						<li id="otherCP">Other</li>
 					</ul>
-
- 					<p class="subHeader">Notes:</p>
+					<p class="subHeader">Notes:</p>
 					<ul id="CPnotesList" class="notesList">
 						<li><input id="natural" class="natural forFire" type="checkbox" name="changeProcess" value="natural" autocomplete="off"> Natural</li>
 						<li><input id="clearcut" class="clearcut forHarvest" type="checkbox" name="changeProcess" value="clearcut" autocomplete="off"> Clearcut</li>
@@ -291,7 +292,7 @@
 						<li><input id="flooding" class="flooding forHydro" type="checkbox" name="changeProcess" value="flooding" autocomplete="off"> Flooding</li>
 						<li><input id="reserviorLakeFlux" class="reserviorLakeFlux forHydro" type="checkbox" name="changeProcess" value="reserviorLakeFlux" autocomplete="off"> Reservoir/Lake flux</li>
 						<li><input id="wetlandDrainage" class="wetlandDrainage forConserv" type="checkbox" name="changeProcess" value="wetlandDrainage" autocomplete="off"> Wetland drainage</li>
-						<li><input id="airphotoOnly" class="airphotoOnly forFire forHarvest forDecline forWind forHydro forDebris forGrowth forStable forConserv forOther" type="checkbox" name="changeProcess" value="airphotoOnly" autocomplete="off"> Airphoto only</li>
+						<li><input id="airphotoOnly" class="airphotoOnly forFire forHarvest forDecline forWind forHydro forDebris forGrowth forStable forMechanical forOther" type="checkbox" name="changeProcess" value="airphotoOnly" autocomplete="off"> Airphoto only</li>
 					</ul>
 					<!-- <div id="changeProcessDoneBtn" class="doneBtn">Done</div> -->
 				</div>
@@ -309,12 +310,6 @@
 							<th>Land Use</th>
 							<th>Land Cover</th>
 						</tr>
-<!-- 						<tr class="vertex">
-							<td class="highlightIt"><span class="glyphicon glyphicon-search"></span></td>
-							<td></td>
-							<td class="landUseInput formDrop lulc"></td>	
-							<td class="landCoverInput formDrop lulc"></td>								
-						</tr> -->
 					</table>
 				</div>
 				
@@ -330,13 +325,15 @@
 										<li id="LUprimaryTab" class="selected" style="border-top-left-radius:4px; text-align:center;">Primary
 										<li id="LUsecondaryTab" style="margin-left:-1px; border-top-right-radius:4px; text-align:center;">Secondary
 									</ul>
-
+									
+									
+									
+									
 									<!--<div id="luLevelSwitchHolder">
 										<div id="LUprimary" class="luLevelSwitch" style="background-color: blue;">Primary</div>
 										<div id="LUsecondary" class="luLevelSwitch" style="border-left:1px solid #afafaf; padding-left:4px; background-color: yellow;">Secondary</div>
 									</div>-->
-
- 									<ul id="landUseList" class="LUlist">
+									<ul id="landUseList" class="LUlist">
 										<li id="forest" class="forest">Forest</li>
 										<li id="developed" class="developed">Developed</li>
 										<li id="ag" class="ag">Agriculture</li>
@@ -359,16 +356,16 @@
 										<li><input id="wetland" class="wetland forForest" type="checkbox" name="landUse" value="wetland" autocomplete="off"> Wetland</li>
 										<li><input id="mining" class="mining forDeveloped" type="checkbox" name="landUse" value="mining" autocomplete="off"> Mining</li>
 										<li><input id="rowCrop" class="rowCrop forAg" class="rowCrop forAg" type="checkbox" name="landUse" value="rowCrop" autocomplete="off"> Row crop</li>
-										<li><input id="orchardTreeFarm" class="orchardTreeFarm forAg" type="checkbox" name="landUse" value="orchardTreeFarm" autocomplete="off"> Orchard/Tree farm</li>
-										<li><input id="vineyardsOtherWoody" class="vineyardsOtherWoody forAg" type="checkbox" name="landUse" value="vineyardsOtherWoody" autocomplete="off"> Vineyard/Other woody</li>
+										<li><input id="orchardTreeFarm" class="orchardTreeFarm forAg" type="checkbox" name="landUse" value="orchardTreeFarm" autocomplete="off"> Orchard/Tree farm/Vineyard</li>
+										<!--<li><input id="vineyardsOtherWoody" class="vineyardsOtherWoody forAg" type="checkbox" name="landUse" value="vineyardsOtherWoody" autocomplete="off"> Vineyard/Other woody</li>-->
 									</ul>
 									
 									<ul id="LUnotesListSec" class="notesList" style="display:none">					
 										<li><input id="wetland" class="wetland forForest" type="checkbox" name="landUse" value="wetland" autocomplete="off"> Wetland</li>
 										<li><input id="mining" class="mining forDeveloped" type="checkbox" name="landUse" value="mining" autocomplete="off"> Mining</li>
 										<li><input id="rowCrop" class="rowCrop forAg" class="rowCrop forAg" type="checkbox" name="landUse" value="rowCrop" autocomplete="off"> Row crop</li>
-										<li><input id="orchardTreeFarm" class="orchardTreeFarm forAg" type="checkbox" name="landUse" value="orchardTreeFarm" autocomplete="off"> Orchard/Tree farm</li>
-										<li><input id="vineyardsOtherWoody" class="vineyardsOtherWoody forAg" type="checkbox" name="landUse" value="vineyardsOtherWoody" autocomplete="off"> Vineyard/Other woody</li>
+										<li><input id="orchardTreeFarm" class="orchardTreeFarm forAg" type="checkbox" name="landUse" value="orchardTreeFarm" autocomplete="off"> Orchard/Tree farm/Vineyard</li>
+										<!--<li><input id="vineyardsOtherWoody" class="vineyardsOtherWoody forAg" type="checkbox" name="landUse" value="vineyardsOtherWoody" autocomplete="off"> Vineyard/Other woody</li>-->
 									</ul>
 									
 									
@@ -382,13 +379,14 @@
 									<ul id="lcLevelSwitchHolder" class="lulcLevelSwitchHolder">
 										<li id="LCprimaryTab" class="selected" style="border-top-left-radius:4px; border-top-right-radius:4px; text-align:center;">Primary
 									</ul>
-
- 									<ul id="landCoverList">
+									
+									
+									<ul id="landCoverList">
 										<li id="treesLC">Trees</li>
 										<li id="shrubsLC">Shrubs</li>
 										<li id="gfhLC">Grass/forb/herb</li>
 										<li id="imperviousLC">Impervious</li>
-										<li id="natBarLC">Natural barren</li>
+										<li id="natBarLC">Barren</li>
 										<li id="snowIceLC">Snow/ice</li>
 										<li id="waterLC">Water</li>
 									</ul>
@@ -398,7 +396,7 @@
 										<li class="shrubs"><input id="shrubs" type="checkbox" name="landCover" value="shrubs" autocomplete="off"> Shrubs</li>
 										<li class="grassForbHerb"><input id="grassForbHerb" type="checkbox" name="landCover" value="grassForbHerb" autocomplete="off"> Grass/forb/herb</li>
 										<li class="impervious"><input id="impervious" type="checkbox" name="landCover" value="impervious" autocomplete="off"> Impervious</li>
-										<li class="naturalBarren"><input id="naturalBarren" type="checkbox" name="landCover" value="naturalBarren" autocomplete="off"> Natural/barren</li>
+										<li class="naturalBarren"><input id="naturalBarren" type="checkbox" name="landCover" value="naturalBarren" autocomplete="off"> Barren</li>
 										<li class="snowIce"><input id="snowIce" type="checkbox" name="landCover" value="snowIce" autocomplete="off"> Snow/ice</li>
 										<li class="water"><input id="water" type="checkbox" name="landCover" value="water" autocomplete="off"> Water</li>
 									</ul>
@@ -414,44 +412,21 @@
 					<div id="commentInputDiv">
 						<textarea id="commentInput" autocomplete="off"></textarea>
 					</div>
+					<div id="exampleCheckBox">
+						<input type="checkbox" id="isExampleCheckbox" value="True" autocomplete="off"> Example
+					</div>
 				</div>
 				
 				
 			</div>
-			
-		<!--<div id="timeLapse" class="sectionDiv">
-				<p class="header">Time-Lapse</p>
-
-				<div id="tlHolder" style="margin:0px 5px 0px 5px">
-					<canvas id="tlCanvas" width=235 height=235></canvas>
-					<div id="tlDate" style="text-align:center">&nbsp</div>
-				</div>
- 				<div class="text-center">
-					<div class="btn-group btn-group-xs" role="group" aria-label="...">
-					  <button id="tlPlay" type="button" class="btn btn-default tlBtn"><span class="glyphicon glyphicon-play"></span></button>			
-					  <button id="tlBack" type="button" class="btn btn-default tlBtn"><span class="glyphicon glyphicon-step-backward"></span></button>
-					  <button id="tlForward" type="button" class="btn btn-default tlBtn"><span class="glyphicon glyphicon-step-forward"></span></button>
-					  <button id="tlBackx2" type="button" class="btn btn-default tlBtn"><span class="glyphicon glyphicon-fast-backward"></span></button>
-					  <button id="tlForwardx2" type="button" class="btn btn-default tlBtn"><span class="glyphicon glyphicon-fast-forward"></span></button>
-					  <button id="flicker" type="button" class="btn btn-default tlBtn"><span class="glyphicon glyphicon-adjust"></span></button>
-					  <button id="slower" type="button" class="btn btn-default tlBtn"><span class="glyphicon glyphicon-minus-sign"></span></button>
-					  <button id="faster" type="button" class="btn btn-default tlBtn"><span class="glyphicon glyphicon-plus-sign"></span></button>
-					</div>
-				</div>
-			</div>-->
-			
-			
-<!-- 			<div id="commentsSection" class="sectionDiv">
-				<p class="header">Comments</p>
-				<div id="commentInputDiv">
-					<textarea id="commentInput" autocomplete="off"></textarea>
-				</div>
-			</div> -->
 
 		</div>
 		
 		<div id="chipGallerySection">
-			<p class="header">Image Chip Selection</p> <!--<span id="expandChipGallery" class="glyphicon glyphicon-new-window right-align" style="float:right; margin:3px; cursor:pointer"></span>-->
+			<div>
+				<p class="header" style="display:inline-block">Image Chip Selection</p> <!--<span id="expandChipGallery" class="glyphicon glyphicon-new-window right-align" style="float:right; margin:3px; cursor:pointer"></span>-->
+				<p id="targetDOY" class="header" style="float:right; padding-right:3px"></p> <!-- display:inline-block;  margin-right:3px -->
+			</div>
 			<div id="chip-gallery"></div>
 		</div>
 		<div id="img-gallery"></div>	
@@ -464,67 +439,7 @@
 				<li id="fillCancel">Cancel</li>
 			</ul>
 		</div>
-
-		<!-- Modal -->
-<!-- 		<div id="doyCalModal" class="modal fade" role="dialog">
-		  <div class="modal-dialog modal-lg">
-
-			
-			<div class="modal-content">
-			  <div class="modal-header">
-				<button type="button" class="close" data-dismiss="modal">&times;</button>
-				<h4 class="modal-title">Day-of-year Calendar</h4>
-			  </div>
-			  <div id="doyCalBody" class="modal-body" style="overflow-y:scroll">
-
-			  </div>
-			  <div class="modal-footer">
-				<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-			  </div>
-			</div>
-
-		  </div>
-		</div>	 -->
-		
-		
-		
-		
-		
-		
-<!-- 		<div id="tsGuideModal" class="modal fade" role="dialog">
-		  <div class="modal-dialog modal-lg">
-
-			<div class="modal-content">
-			  <div class="modal-header">
-				<button type="button" class="close" data-dismiss="modal">&times;</button>
-				<h4 class="modal-title">TimeSync Guide</h4>
-			  </div>
-			  <div id="tsGuideBody" class="modal-body" style="overflow-y:scroll">
-
-			  </div>
-			  <div class="modal-footer">
-				<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-			  </div>
-			</div>
-
-		  </div>
-		</div> -->	
-		
-		
-		
-		<script>				
-			
-			//appendChips("main",[0,n_chips-1]); //n_chips might not be loaded at this point - keep in mind
-			//window.onload = start;
-			
-			//var tlCanvasID = document.getElementById("tlCanvas"); //this is for the time lapse video - not used
-			//var tlctx = tlCanvasID.getContext("2d"); //global - this is for the time lapse video - not used
-			
-			//$("#tsGuideBody").load("ts_guide.html"); //append the html guide file			
-			//$("#doyCalBody").load("doy_calendar.html"); //append the html guide file
-		
-		</script>
-		<script type="text/javascript" src="tsv3_scripts.js"></script>
-		<script type="text/javascript" src="tsv3_tooltips.js"></script>		
+			<script type="text/javascript" src="ts_v3_scripts.js"></script>
+		<script type="text/javascript" src="ts_v3_tooltips.js"></script>		
 	</body>
 </html>

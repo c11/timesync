@@ -37,9 +37,9 @@ class RegionSpectralService extends BaseService {
 
 		while (mysqli_stmt_fetch($stmt)) {
 			$pid = str_pad($row->image_julday, 3, '0', STR_PAD_LEFT);
-			//$row->url = "http://timesync.forestry.oregonstate.edu/storages/v3/prj_$project_id/ts_{$tsa}/plot_{$plotid}/tsa_{$tsa}_plot_{$plotid}_{$row->image_year}_{$pid}.png";
-			//$row->url = "http://timesync.forestry.oregonstate.edu/storages/v3/prj_$project_id/plot_{$plotid}/tsa_{$tsa}_plot_{$plotid}_{$row->image_year}_{$pid}.png";
-			$row->url = "http://timesync.forestry.oregonstate.edu/storages/v3/prj_$project_id/plot_{$plotid}/plot_{$plotid}_{$row->image_year}_{$pid}.png";
+			$row->url_tcb = "http://timesync.forestry.oregonstate.edu/storages/v3/prj_$project_id/tc/plot_{$plotid}/plot_{$plotid}_{$row->image_year}_{$pid}.png";
+			$row->url_743 = "http://timesync.forestry.oregonstate.edu/storages/v3/prj_$project_id/b743/plot_{$plotid}/plot_{$plotid}_{$row->image_year}_{$pid}.png";
+			$row->url_432 = "http://timesync.forestry.oregonstate.edu/storages/v3/prj_$project_id/b432/plot_{$plotid}/plot_{$plotid}_{$row->image_year}_{$pid}.png";
 	      	$rows[] = $row;
 	      	$row = new stdClass();
 				mysqli_stmt_bind_result($stmt, $row->project_id, $row->tsa, $row->plotid,
@@ -86,6 +86,7 @@ class RegionSpectralService extends BaseService {
 			and rs.image_julday = rsm.image_julday
 			and rsm.interpreter = $interpreter
 			where b1+b2+b3 <> 0 and
+			b1 < 2000 and
 			rs.project_id = $project_id
 			and rs.tsa = $tsa
 			and rs.plotid = $plotid
@@ -101,7 +102,9 @@ class RegionSpectralService extends BaseService {
 			and rsm.interpreter = $interpreter
 			where rs.project_id = $project_id
 			and rs.tsa = $tsa
-			and rs.plotid = $plotid
+			and rs.plotid = $plotid and
+			b1+b2+b3 <> 0 and
+			b1 < 2000
 			group by rs.project_id, rs.tsa, rs.plotid, rs.image_year
 		) b
 		on a.project_id = b.project_id
