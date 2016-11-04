@@ -1194,9 +1194,9 @@ Yang: 2016.08.31: warren want to change it back to always local stretch */
 						else if(thisListID == "blueList"){$("#btnBlue div").replaceWith('<div><small>RG</small><strong>B</strong><br><small>'+$("#"+thisSpecIndexID).text()+'</small><span class="caret specPlot"></span></div>')};
 						
 						//these could be global, they are retrieved again when a chip is replaced.
-						var activeRedSpecIndex = $("#redList li.active").attr('id') 
-						var	activeGreenSpecIndex = $("#greenList li.active").attr('id')
-						var	activeBlueSpecIndex = $("#blueList li.active").attr('id')
+						activeRedSpecIndex = $("#redList li.active").attr('id') 
+						activeGreenSpecIndex = $("#greenList li.active").attr('id')
+						activeBlueSpecIndex = $("#blueList li.active").attr('id')
 
 						rgbColor = scaledRGB(data, activeRedSpecIndex, activeGreenSpecIndex, activeBlueSpecIndex, stretch, 2, n_chips);
 						allDataRGBcolor = scaledRGB(allData, activeRedSpecIndex, activeGreenSpecIndex, activeBlueSpecIndex, stretch, 2, allData.Values.length);
