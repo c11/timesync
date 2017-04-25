@@ -95,6 +95,7 @@ CREATE TABLE `project_interpreter` (
   `prj_interp_id` int(11) NOT NULL AUTO_INCREMENT,
   `project_id` int(11) DEFAULT NULL,
   `tsa` int(11) DEFAULT '999999',
+  `packet_id` int(11) DEFAULT NULL,
   `interpreter` int(11) DEFAULT NULL,
   `start_date` timestamp NULL DEFAULT NULL,
   `isactive` int(11) NOT NULL DEFAULT '1',
@@ -117,6 +118,18 @@ CREATE TABLE `projects` (
   `target_day` int(11) NOT NULL DEFAULT '215',
   PRIMARY KEY (`project_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=latin1;
+
+-- ----------------------------
+--  Table structure for `project_packet`
+-- ----------------------------
+CREATE TABLE `project_packet` (
+  `idproject_packet` bigint(11) NOT NULL AUTO_INCREMENT,
+  `project_id` bigint(11) NOT NULL,
+  `packet_id` int(11) NOT NULL,
+  `plotid` int(11) NOT NULL,
+  PRIMARY KEY (`idproject_packet`),
+  KEY `ppp` (`project_id`,`packet_id`,`plotid`)
+) ENGINE=MyISAM AUTO_INCREMENT=1 DEFAULT CHARSET=latin1;
 
 -- ----------------------------
 --  Table structure for `region_spectrals`
