@@ -65,6 +65,17 @@
 					<li>Fill on the fly 3</li> -->
 				</ul>
 			</div>
+			<p style="display:inline-block;">Packet:</p>
+			<div class="dropdown" style="display:inline-block; margin-right:15px;">
+				<button id="packetBtn" class="btn btn-default btn-xs dropdown-toggle" type="button" data-toggle="dropdown" style="font-size:11px; margin-bottom:2px; height:21.7167px; width:100px; text-align: left;">
+					<span class="caret projBtn"></span>
+				</button>
+				<ul id="packetList" class="dropdown-menu">
+<!-- 				<li>Fill on the fly 1</li>
+					<li>Fill on the fly 2</li>
+					<li>Fill on the fly 3</li> -->
+				</ul>
+			</div>
 			<div id="chipOptionHolder">
 				<div class="chipOptions" id="chipSizeDiv">
 					<p style="display:inline-block;">Chip Size:</p>
@@ -273,7 +284,11 @@
 					<ul id="changeProcessList">
 						<li id="fire">Fire</li>
 						<li id="harvest">Harvest</li>
+						<!--
 						<li id="decline">Decline</li>
+						-->
+						<li id="acuteDecline">Acute Decline</li>
+						<li id="conditionDecline">Condition Decline</li>
 						<li id="wind">Wind</li>
 						<li id="hydro">Hydrology</li>
 						<li id="debris">Debris</li>

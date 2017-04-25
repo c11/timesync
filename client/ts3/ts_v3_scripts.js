@@ -50,6 +50,7 @@
 				"plotSize":1
 			}
 			
+			var packetInfo = {}
 			
 			var chipInfo = {
 				useThisChip:[],
@@ -223,6 +224,19 @@ Yang: 2016.08.31: warren want to change it back to always local stretch */
 									$("#img-gallery").imagesLoaded(function(){
 										//makeChipInfo("json", origData); //chip info array gets set in "appendChips" gets filled out here because we have to wait until the imgs have loaded to get their height (used when chip strip is the src - not needed when chips are singles)
 										drawAllChips("annual");	//draw the imgs to the canvas	
+										//tlInt(); //draw the time-lapse img - this is for the time lapse video - not used
+/* 										if ((expandedChipWindow != null) && expandedChipWindow.closed == false){
+											var selectedColor = $("#selectedColor").prop("value");
+											var pass_data = {
+												"action":"init_chips", //hard assign
+												"selectThese":selectThese, //selectThese, //"n_chips":"40", //get this from the img metadata
+												"chipInfo":chipInfo,
+												"n_chips":n_chips,
+												"chipDisplayProps":chipDisplayProps,
+												"selectedColor":selectedColor
+											};
+											expandedChipWindow.postMessage(JSON.stringify(pass_data),"*");	
+										} */
 									});		
 								});
 								//plotInt(); //draw the points
@@ -236,19 +250,22 @@ Yang: 2016.08.31: warren want to change it back to always local stretch */
 			//function to populate the project list when #projectList element finishes loading
 			function addProjectData(sessionInfo){
 				$.getJSON(getUrls(sessionInfo).projectList).done(function(object){
-					for(var i=0;i<object.length;i++){$("#projectList").append('<li value="' + object[i].project_id + '" data-size="' + object[i].plot_size + '">'+object[i].project_code+'</li>')}
+					for(var i=0;i<object.length;i++){
+						$("#projectList").append('<li value="' + object[i].project_id + '" data-size="' + object[i].plot_size + '">'+object[i].project_code+'</li>')
+						packetInfo[object[i].project_id] = object[i].packet_ids;
+					}
 				});
 			}
 
 			function getUrls(sessionInfo, year){
-				var server = 'http://timesync.forestry.oregonstate.edu/_ts3'
+				var server = 'https://timesync.forestry.oregonstate.edu/_ts3'
 				var urls = {
 					"annualSpec": server + '/data/'+sessionInfo.userID+'/'+sessionInfo.projectID+'/'+sessionInfo.tsa+'/'+sessionInfo.plotID+'/'+year,
 					"selectedSpec": server + '/data/'+sessionInfo.userID+'/'+sessionInfo.projectID+'/'+sessionInfo.tsa+'/'+sessionInfo.plotID,					
 					"projectList": server + '/project/'+sessionInfo.userID,
 					"plotInterp": server + '/index.php/vertex/'+sessionInfo.userID+'/'+sessionInfo.projectID+'/'+sessionInfo.tsa+'/'+sessionInfo.plotID,
 					"plotComment": server + '/comment/'+sessionInfo.userID+'/'+sessionInfo.projectID+'/'+sessionInfo.tsa+'/'+sessionInfo.plotID,
-					"plotList": server + '/plot/'+sessionInfo.userID+'/'+sessionInfo.projectID+'/'+sessionInfo.tsa,
+					"plotList": server + '/plot/'+sessionInfo.userID+'/'+sessionInfo.projectID+'/'+sessionInfo.tsa + '/' + sessionInfo.packet,
 					"respDesign": server + '/config/response/'+sessionInfo.projectID,
 					"chipOverRide": server + '/image/override',
 					"vertInfoSave": server + '/vertex/save',
@@ -278,6 +295,14 @@ Yang: 2016.08.31: warren want to change it back to always local stretch */
 			$('#commentInput').keypress(function(){
 				sessionInfo.isDirty = true;
 			});
+
+			$('#exportBtn').click(function(event) {
+				var target = 'exportts.php?t=' + authHeader + '&pid=' + sessionInfo.projectID + '&uid=' + sessionInfo.userID;				
+				if (sessionInfo.projectID == '') {
+					return;
+				}
+				window.location.href=target;
+			});
 			
 			//if the isExampleCheckbox is altered, then the session is dirty and should be saved, also the class of the #plotList li.selected needs to be updated
 			$('#isExampleCheckbox').change(function(){
@@ -303,9 +328,49 @@ Yang: 2016.08.31: warren want to change it back to always local stretch */
 				sessionInfo.plotID = ""; //defaulted as "" when application is first opened, do this to reset to default if a new project is selected from the same session or else the plotID will still be assigned, but from the last project
 				sessionInfo.plotSize = $(this).data().size;
 				chipDisplayProps.box = $(this).data().size;
+
+				var thesePackets = packetInfo[sessionInfo.projectID];
+				$('#packetList').empty();
+				//if no packet information is defined, autoload all plots and disable packet list
+				if (thesePackets === null) {
+					$('#packetBtn').prop('disabled', true);
+					$("#packetBtn").empty().append('All<span class="caret projBtn"></span>');
+					sessionInfo.packet = -1;
+				}
+				else {
+					$('#packetBtn').prop('disabled', false);
+					var packets = thesePackets.split(',').forEach(function(v, i) {
+						$('#packetList').append('<li value="' + v + '">Packet ' + v + '</li>')
+						if (i === 0) {
+							$("#packetBtn").empty().append('Packet ' + v +'<span class="caret projBtn"></span>');
+							sessionInfo.packet = v
+						}
+					});
+				}
 				appendPlots(sessionInfo);
 			});
 			
+			//listener/action for when a project is clicked on - append plots to the plot list for that project
+			$("body").on("click", "#packetList li", function(){
+				clearThePlotDisplay(sessionInfo, vertInfo) //vertInfo is null because it may not have been created yet if this is the first loading
+				sessionInfo.packet = $(this).val();
+				sessionInfo.plotID = ""; //defaulted as "" when application is first opened, do this to reset to default if a new project is selected from the same session or else the plotID will still be assigned, but from the last project
+
+				$("#packetBtn").empty().append('Packet ' + sessionInfo.packet +'<span class="caret projBtn"></span>');
+				appendPlots(sessionInfo);
+			});
+
+
+			//listener/action for when a project is clicked on - append plots to the plot list for that project
+			$("body").on("click", "#packetList li", function(){
+				// clearThePlotDisplay(sessionInfo, vertInfo) //vertInfo is null because it may not have been created yet if this is the first loading
+				// sessionInfo.projectID = $(this).val();
+				// sessionInfo.projectCode = $(this).text();
+				// sessionInfo.plotID = ""; //defaulted as "" when application is first opened, do this to reset to default if a new project is selected from the same session or else the plotID will still be assigned, but from the last project
+				// sessionInfo.plotSize = $(this).data().size;
+				// chipDisplayProps.box = $(this).data().size;
+				// appendPlots(sessionInfo);
+			});
 			
 			
 			
@@ -345,6 +410,26 @@ Yang: 2016.08.31: warren want to change it back to always local stretch */
 				}
 				return done;
 			}
+
+			//function checkAllPlots(sessionInfo){
+			//	$("#plotList li").each(function(i){
+			//		var tempSessionInfo = $.extend(true, {}, sessionInfo)
+			//		tempSessionInfo.plotID = $(this).text();
+			//		var tempVertInfo = [];					
+			//		$.getJSON(getUrls(tempSessionInfo).plotInterp).done(function(vertices){
+			//			vertices.forEach(function(v){									
+			//				tempVertInfo.push({
+			//					landUse: {
+			//						primary: {landUse: v.dominant_landuse}
+			//					},
+			//					landCover:{landCover: v.dominant_landcover},
+			//					changeProcess: {changeProcess: v.change_process}
+			//				});
+			//			});					
+			//		checkPlot(tempSessionInfo, tempVertInfo)
+			//		});
+			//	});
+			//}
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -461,6 +546,10 @@ Yang: 2016.08.31: warren want to change it back to always local stretch */
 				currentDomain = getSetting(sessionInfo.projectID, sessionInfo.plotID, defaultDomain)
 				currentDomain.dirty = 0; //need to reset this since it is "clean" now
 				
+				//checkPlot(sessionInfo, vertInfo); //this gets handled in the saveVertInfo function which gets called in the clearThePlotDisplay function call just 1 line above
+				//var thisVertInfo = $("#plotList li").index($("#plotList li.selected"))
+				//plotFormInfo[thisVertInfo] = vertInfo;
+				
 				$("#plotList li").removeClass("selected");
 				$(this).addClass("selected");
 				
@@ -515,6 +604,28 @@ Yang: 2016.08.31: warren want to change it back to always local stretch */
 				return result;
 			}
 
+			//serialize Land Use, Land Cover, and Change process notes for database@param notes@returns {string}
+//			function serializeNote(notes) {
+//				var result = "";
+//				var idx = 0;
+//				for (var k in notes) {
+//					if (notes[k]) {
+//						if (idx++ > 0) {
+//							result += '|';
+//						}
+//						result += k;
+//					}
+//				}
+//				return result;
+//			}
+			////////////////////////////////////////FROM YANG///////////////////////////////////////////////////////////////////////
+
+
+		
+
+				
+			
+			
 			
 //////////////////////////////////////////////////////////////////////////////////////////////////////			
 //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -561,6 +672,12 @@ Yang: 2016.08.31: warren want to change it back to always local stretch */
 				svg.selectAll("circle")
 					.attr("cx", function(d){return xscale(d.decDate);})
 					.attr("cy", function(d){return yscale(d[specIndex]);});
+				//svg.selectAll("circle.data")
+				//	.attr("cx", function(d){return xscale(d.decDate);})
+				//	.attr("cy", function(d){return yscale(d[specIndex]);});
+				//svg.selectAll("circle.allData")
+				//	.attr("cx", function(d){return xscale(d.decDate);})
+				//	.attr("cy", function(d){return yscale(d[specIndex]);});
 
 				//draw the x axis - draw this afte the points so that their ticks marks don't draw over it
 				svg.select('.x.axis').call(xaxis);
@@ -588,6 +705,23 @@ Yang: 2016.08.31: warren want to change it back to always local stretch */
 				}
 				
 				var w = $("#plot").width()
+				//$("#svg").attr("width",w)
+				
+				//var yearmin = d3.min(data.Values, function(d) {return d.Year;});
+				//var	yearmax = d3.max(data.Values, function(d) {return d.Year;});
+				
+				//var date = new Date();
+				//var yearmin = 1982;
+				//var yearmax = date.getFullYear()
+				
+				
+				//adjust the ranges so there is some buffer
+				
+				//currentDomain.year.min = yearmin; //needs to be a global variable - for resetting the plot to defualt domain
+				//currentDomain.year.max = yearmax+1; //needs to be a global variable - for resetting the plot to defualt domain
+				//xmin = yearmin;
+				//xmax = yearmax+1;
+				
 				
 				//make an array of ticks and lables
 				//var year //i think this is an abandoned line
@@ -598,6 +732,7 @@ Yang: 2016.08.31: warren want to change it back to always local stretch */
 				//make an array of vertcal line x positions
 				var xGrid = [];
 				for(var i=defaultDomain.year.min;i<=defaultDomain.year.max;i++){xGrid.push(i)}
+				//for(var i=0;i<=currentDomain.year.max-currentDomain.year.min;i++){xGrid.push(currentDomain.year.min+i)}
 				
 				//define the width of the svg plot area
 				//var w = 740,// 
@@ -651,6 +786,12 @@ Yang: 2016.08.31: warren want to change it back to always local stretch */
 				
 				//retrieve the svg reference
 				svg = d3.select("#svg"); 
+				
+				//make the default line data
+				//lineData = [ //needs to be local variable
+				//	{"x":yearmin ,"y":data.Values[0][specIndex]},
+				//	{"x":yearmax ,"y":data.Values[len-1][specIndex]}
+				//];
 
 				//make the line function to convert the xy object to svg path syntax 
 				lineFunction = d3.svg.line() //global because it gets used when selecting new points
@@ -681,6 +822,12 @@ Yang: 2016.08.31: warren want to change it back to always local stretch */
 					.attr("y1", function(d){return -20000})
 					.attr("y2", function(d){return 20000})
 					.attr("class","vline")	
+
+
+				//.selectAll("text")
+					//.attr("y", -10)
+					//.attr("x", 12)
+					//.attr("transform", "rotate(90)")
 					
 				//draw the y axis
 				svg.append("g")
@@ -826,6 +973,10 @@ Yang: 2016.08.31: warren want to change it back to always local stretch */
 				lineGraph.attr("clip-path", "url(#clip)");
 				vline.attr("clip-path", "url(#clip)");
 				
+				
+				//dataCircles.eq(0).attr("class","data selected");
+				//dataCircles.eq(len-1).attr("class","data selected");
+				
 				//fill in the global selectedCircles variable for the first time
 				var selectedCirclesTemp = $("circle.data.selected");
 				for(var i=0; i < selectedCirclesTemp.length; i++){
@@ -963,6 +1114,10 @@ Yang: 2016.08.31: warren want to change it back to always local stretch */
 			
 			//mechanism to reset the plot zoom			
 			$("#btnResetGlobal").click(function(){
+				//svg.call(xyzoom
+				//	.x(xscale.domain([defaultDomain.year.min, defaultDomain.year.max])) //xmin and xmax are global variables that are set in the "plotInt" function
+				//	.y(yscale.domain([defaultDomain[specIndex].min, defaultDomain[specIndex].max])) //domain is javascript object that comes from an outside file
+				//	.event);
 				svg.call(xzoom
 					.x(xscale.domain([defaultDomain.year.min, defaultDomain.year.max])) //xmin and xmax are global variables that are set in the "plotInt" function
 					.y(yscale.domain([defaultDomain[specIndex].min, defaultDomain[specIndex].max])) //domain is javascript object that comes from an outside file
@@ -974,6 +1129,10 @@ Yang: 2016.08.31: warren want to change it back to always local stretch */
 			});
 			
 			$("#btnResetLocal").click(function(){
+				//svg.call(xyzoom
+				//	.x(xscale.domain([defaultDomain.year.min, defaultDomain.year.max])) //xmin and xmax are global variables that are set in the "plotInt" function
+				//	.y(yscale.domain([defaultDomain[specIndex].min, defaultDomain[specIndex].max])) //domain is javascript object that comes from an outside file
+				//	.event);
 				localStretch();
 			});
 			
@@ -1095,10 +1254,15 @@ Yang: 2016.08.31: warren want to change it back to always local stretch */
 			//define function to calculate stretched 8-bit color array by spectral index
 			function calcColor(data, specIndex, stretch, n_stdev, len) {
 				var dataC = $.extend(true, {}, data); //make a copy the data so the original is not altered by the min/max setting
+				//var minv = stretch[specIndex].mean - (stretch[specIndex].stdev * n_stdev) //calcuate the min value for the stretch
+				//var maxv = stretch[specIndex].mean + (stretch[specIndex].stdev * n_stdev) //calcuate the max value for the stretch
 				var	color = []; //make a empty array to hold the color weight for each data point
 				for(var i=0;i<len;i++){ //loop through all the data points
+					//if(dataC.Values[i][specIndex] < minv) dataC.Values[i][specIndex] = minv; //if the point value is less than the min strech value, then set to min - in-function data copy only!
+					//if(dataC.Values[i][specIndex] > maxv) dataC.Values[i][specIndex] = maxv; //if the point value is greater than the max strech value, then set to max  - infunction data copy only!
 					if(dataC.Values[i][specIndex] < stretch[specIndex].min) dataC.Values[i][specIndex] = stretch[specIndex].min; //if the point value is less than the min strech value, then set to min - in-function data copy only!
 					if(dataC.Values[i][specIndex] > stretch[specIndex].max) dataC.Values[i][specIndex] = stretch[specIndex].max; //if the point value is greater than the max strech value, then set to max  - infunction data copy only!
+					//color[i] = ((dataC.Values[i][specIndex] - minv) / (maxv - minv)) * 256; //set the 8-bit color weight for each point
 					color[i] = ((dataC.Values[i][specIndex] - stretch[specIndex].min) / (stretch[specIndex].max - stretch[specIndex].min)) * 256; //set the 8-bit color weight for each point
 				}
 				return color; //return the color weights
@@ -1315,7 +1479,124 @@ Yang: 2016.08.31: warren want to change it back to always local stretch */
 				$("circle.selected").css("stroke",color);
 				$("#plotLine").css("stroke",color);
 				$(".chipHolder.selected").css("border-color",color);
-			}		
+			}
+
+			
+///////////////////////////////////////////////////////BELOW ARE LINE INFO FORM SCRIPTS/////////////////////////////////////////////////////////////////
+//////////////BELOW ARE LINE INFO FORM SCRIPTS////////////////////////////////////////BELOW ARE LINE INFO FORM SCRIPTS//////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////BELOW ARE LINE INFO FORM SCRIPTS////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////BELOW ARE LINE INFO FORM SCRIPTS/////////////////////////////////
+////////////////////////////BELOW ARE LINE INFO FORM SCRIPTS////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////BELOW ARE LINE INFO FORM SCRIPTS/////////////////////////////////BELOW ARE LINE INFO FORM SCRIPTS////			
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
+//GLOBAL VARIABLES//////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
+
+//OLD VERTINFO TEMPLATE
+//template vertInfo object which holds all the segment and vertice info			
+//			var vertInfo = {[{
+//						year:0,
+//						index:0,
+//						landUse:{
+//							dominant:"",
+//							notes:{
+//								wetland:false,
+//								mining:false,
+//								rowCrop:false,
+//								orchardTreeFarm:false,
+//								vineyardsOtherWoody:false
+//							}
+//						},
+//						landCover:{
+//							dominant:"",
+//							other:{
+//								trees:false,
+//								shrubs:false,
+//								grassForbHerb:false,
+//								impervious:false,
+//								naturalBarren:false,
+//								snowIce:false,
+//								water:false
+//							}
+//						},
+//						changeProcess:{
+//							changeProcess:"",
+//							notes:{
+//								natural:false,
+//								prescribed:false,
+//								sitePrepFire:false,
+//								airphotoOnly:false,
+//								clearcut:false,
+//								thinning:false,
+//								flooding:false,
+//								reserviorLakeFlux:false,
+//								wetlandDrainage:false
+//							}
+//						}					
+//				}]}
+
+//NEW VERTINFO TEMPLATE
+//template vertInfo object which holds all the segment and vertice info			
+//			var vertInfo = {[{
+//						year:0,
+//						index:0,
+//						landUse:{
+//							primary:{
+//								landUse:"",
+//								notes:{
+//									wetland:false,
+//									mining:false,
+//									rowCrop:false,
+//									orchardTreeFarm:false,
+//									vineyardsOtherWoody:false
+//								}								
+//							},
+//							secondary:{
+//								landUse:"",
+//								notes:{
+//									wetland:false,
+//									mining:false,
+//									rowCrop:false,
+//									orchardTreeFarm:false,
+//									vineyardsOtherWoody:false
+//								}							
+//							}
+//						},
+//						landCover:{
+//							landCover:"",
+//							other:{
+//								trees:false,
+//								shrubs:false,
+//								grassForbHerb:false,
+//								impervious:false,
+//								naturalBarren:false,
+//								snowIce:false,
+//								water:false
+//							}
+//						},
+//						changeProcess:{
+//							changeProcess:"",
+//							notes:{
+//								natural:false,
+//								prescribed:false,
+//								sitePrepFire:false,
+//								airphotoOnly:false,
+//								clearcut:false,
+//								thinning:false,
+//								flooding:false,
+//								reserviorLakeFlux:false,
+//								wetlandDrainage:false
+//							}
+//						}					
+//				}]}
+
+			
 
 ////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -1463,6 +1744,9 @@ Yang: 2016.08.31: warren want to change it back to always local stretch */
 				if($("#contextMenu").css("display") == "block"){$("#contextMenu").hide()}
 			});
 			
+			//$("#contextMenu").click(function(e){
+			//	e.stopPropagation();
+			//});
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////			
@@ -1630,12 +1914,26 @@ Yang: 2016.08.31: warren want to change it back to always local stretch */
 			});
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 			
+						
+//DONE BUTTON EVENT HANDLERS////////////////////////////////////////////////////////////////////////////
+			//when done buttons are clicked close their dropdown and record  the info in the inputs to the lineInfo object
+			//$(".doneBtn").click(function(){   //not using done btn anymore - closeDropAndRecord is now called on mouse leave
+			//	closeDropAndRecord();
+			//});
+			
 			
 			$("#lulc, #changeProcessDiv, #formsDiv").mouseleave(function() {
 				closeDropAndRecord();
 			});
 			
 			
+//MAKE SURE THAT FORM DROPS ARE CLOSED WHEN MOVING TO A NEW PLOT OR PROJECT
+			
+			//$("").click(function(){ //, #projBtn
+			//$(document).on("click","#plotList li", function(){		 //, #LUnotesList li, #LCnotesList li	
+			//	console.log("IM IN!")
+			//	closeDropAndRecord();
+			//});
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 			
 			
@@ -1703,7 +2001,28 @@ Yang: 2016.08.31: warren want to change it back to always local stretch */
 				$("td.landCoverInput.active").text(selection);	 //place the text in the active td
 				appendLCnotes(selection);
 			});
-	
+
+			
+			
+			
+/////////////////////////////////////////////////////////////////////////////////////////
+			
+			
+//MAKE THE NOTE CHECKBOXES TOGGLE ON AND OFF AND SET THE "SELECTED" CLASS////////////////
+			//$(document).ready(function(){
+			//	$(document).on("click","#CPnotesList li, #LUnotesList li, #LCnotesList li", function(){
+			//		var selected = $(this);
+			//		if(selected.hasClass("disabled") == false){
+			//			if(selected.hasClass("selected")){
+			//				//selected.removeClass("selected");
+			//				//$("span", this).replaceWith('<span class="glyphicon glyphicon-unchecked"></span> ');
+			//			} else {
+			//				//selected.addClass("selected");
+			//				//$("span", this).replaceWith('<span class="glyphicon glyphicon-ok"></span> ');
+			//			}
+			//		}
+			//	});
+			//});			
 //////////////////////////////////////////////////////////////////////////////////////////
 
 			//highlight selected circles, canvases, and input row when the magnifying glass is clicked
@@ -1750,11 +2069,23 @@ Yang: 2016.08.31: warren want to change it back to always local stretch */
 						$(".forHarvest").closest("li").removeClass("disabled");
 						$(".forHarvest").attr("disabled", false);
 						break;
-					case "Decline":
+					// case "Decline":
+					// 	//$("#CPnotesList").append('<li class="airphotoOnly">Airphoto only</li>');								
+					// 	$("#decline").addClass("selected");
+					// 	$(".forDecline").closest("li").removeClass("disabled");
+					// 	$(".forDecline").attr("disabled", false);
+					// 	break;
+					case "Acute Decline":
 						//$("#CPnotesList").append('<li class="airphotoOnly">Airphoto only</li>');								
-						$("#decline").addClass("selected");
-						$(".forDecline").closest("li").removeClass("disabled");
-						$(".forDecline").attr("disabled", false);
+						$("#acuteDecline").addClass("selected");
+						$(".forAcuteDecline").closest("li").removeClass("disabled");
+						$(".forAcuteDecline").attr("disabled", false);
+						break;
+					case "Condition Decline":
+						//$("#CPnotesList").append('<li class="airphotoOnly">Airphoto only</li>');								
+						$("#conditionDecline").addClass("selected");
+						$(".forConditionDecline").closest("li").removeClass("disabled");
+						$(".forConditionDecline").attr("disabled", false);
 						break;
 					case "Wind":
 						//$("#CPnotesList").append('<li class="airphotoOnly">Airphoto only</li>');								
@@ -1774,7 +2105,7 @@ Yang: 2016.08.31: warren want to change it back to always local stretch */
 						$(".forDebris").closest("li").removeClass("disabled");
 						$(".forDebris").attr("disabled", false);
 						break;
-					case "Growth":
+					case "Growth/Recovery":
 						//$("#CPnotesList").append('<li class="airphotoOnly">Airphoto only</li>');								
 						$("#growth").addClass("selected");
 						$(".forGrowth").closest("li").removeClass("disabled");
@@ -1934,6 +2265,28 @@ Yang: 2016.08.31: warren want to change it back to always local stretch */
 						break;
 				}
 				
+				
+				
+				
+				//$("#LCnotesList").empty();
+				//if(selection != ""){
+					//$("#LCnotesList").append(
+					//	'<li class="trees">Trees</li>'+
+					//	'<li class="shrubs">Shrubs</li>'+
+					//	'<li class="grassForbHerb">Grass/forb/herb</li>'+
+					//	'<li class="impervious">Impervious</li>'+
+					//	'<li class="naturalBarren">Natural/barren</li>'+
+					//	'<li class="snowIce">Snow/ice</li>'+
+					//	'<li class="water">Water</li>'
+					//);
+				//	$("#LCnotesList li").each(function(){
+				//		var thisClass = $(this).text().trim();
+				//		if(thisClass == selection){
+				//			$(this).hide();
+				//			return false
+				//		}					
+				//	});
+				//}
 			}
 			
 			
@@ -1951,6 +2304,15 @@ Yang: 2016.08.31: warren want to change it back to always local stretch */
 				var selection = $("td.changeProcessInput.active").text();
 				
 				vertInfo[thisOne].changeProcess.changeProcess = selection;		
+				//vertInfo[thisOne].changeProcess.notes.natural = $("#natural").hasClass("selected")
+				//vertInfo[thisOne].changeProcess.notes.prescribed = $("#prescribed").hasClass("selected")
+				//vertInfo[thisOne].changeProcess.notes.sitePrepFire = $("#sitePrepFire").hasClass("selected")
+				//vertInfo[thisOne].changeProcess.notes.airphotoOnly = $("#airphotoOnly").hasClass("selected")
+				//vertInfo[thisOne].changeProcess.notes.clearcut = $("#clearcut").hasClass("selected")
+				//vertInfo[thisOne].changeProcess.notes.thinning = $("#thinning").hasClass("selected")
+				//vertInfo[thisOne].changeProcess.notes.flooding = $("#flooding").hasClass("selected")
+				//vertInfo[thisOne].changeProcess.notes.reserviorLakeFlux = $("#reserviorLakeFlux").hasClass("selected")
+				//vertInfo[thisOne].changeProcess.notes.wetlandDrainage = $("#wetlandDrainage").hasClass("selected")
 				
 				vertInfo[thisOne].changeProcess.notes.natural = $("#natural").prop("checked");
 				vertInfo[thisOne].changeProcess.notes.prescribed = $("#prescribed").prop("checked");
@@ -1961,6 +2323,43 @@ Yang: 2016.08.31: warren want to change it back to always local stretch */
 				vertInfo[thisOne].changeProcess.notes.flooding = $("#flooding").prop("checked");
 				vertInfo[thisOne].changeProcess.notes.reserviorLakeFlux = $("#reserviorLakeFlux").prop("checked");
 				vertInfo[thisOne].changeProcess.notes.wetlandDrainage = $("#wetlandDrainage").prop("checked");
+				
+						
+				//$("#CPnotesList .selected").removeClass("selected");
+				
+				//switch(selection){
+				//	case "Fire":
+				//		fillInNotes("#CPnotesList .selected",thisOne,"natural","changeProcess");
+				//		fillInNotes("#CPnotesList .selected",thisOne,"prescribed","changeProcess");
+				//		fillInNotes("#CPnotesList .selected",thisOne,"sitePrepFire","changeProcess");
+				//	break;
+				//	case "Harvest":
+				//		fillInNotes("#CPnotesList .selected",thisOne,"clearcut","changeProcess");
+				//		fillInNotes("#CPnotesList .selected",thisOne,"thinning","changeProcess");
+				//		fillInNotes("#CPnotesList .selected",thisOne,"sitePrepFire","changeProcess");						
+				//	break;
+				//	case "Decline":								
+				//	break;
+				//	case "Wind":								
+				//	break;
+				//	case "Hydrology":
+				//		fillInNotes("#CPnotesList .selected",thisOne,"flooding","changeProcess");
+				//		fillInNotes("#CPnotesList .selected",thisOne,"reserviorLakeFlux","changeProcess");											
+				//	break;
+				//	case "Debris":								
+				//	break;
+				//	case "Growth":							
+				//	break;
+				//	case "Stable":							
+				//	break;
+				//	case "Conversion":
+				//		fillInNotes("#CPnotesList .selected",thisOne,"wetlandDrainage","changeProcess");						
+				//	break;
+				//	case "Other":
+				//	break;						
+				//}
+				//fillInNotes("#CPnotesList .selected",thisOne,"airphotoOnly","changeProcess");
+				//console.log(vertInfo)
 			}
 			
 			//land use
@@ -1980,6 +2379,13 @@ Yang: 2016.08.31: warren want to change it back to always local stretch */
 				vertInfo[thisOne].landUse.secondary.landUse = thisSelectedSecLU.text() //get the text from the selected class 	
 				thisSelectedSecLU.removeClass("selected"); //then make sure to get rid of the selected class so it can be set dynamically
 				
+				//vertInfo[thisOne].landUse.primary.notes.wetland = $("#wetland").hasClass("selected")
+				//vertInfo[thisOne].landUse.primary.notes.mining = $("#mining").hasClass("selected")
+				//vertInfo[thisOne].landUse.primary.notes.rowCrop = $("#rowCrop").hasClass("selected")
+				//vertInfo[thisOne].landUse.primary.notes.orchardTreeFarm = $("#orchardTreeFarm").hasClass("selected")
+				//vertInfo[thisOne].landUse.primary.notes.vineyardsOtherWoody = $("#vineyardsOtherWoody").hasClass("selected")
+				
+
 				vertInfo[thisOne].landUse.primary.notes.wetland = $("#LUnotesList .wetland").prop("checked");
 				vertInfo[thisOne].landUse.primary.notes.mining = $("#LUnotesList .mining").prop("checked");
 				vertInfo[thisOne].landUse.primary.notes.rowCrop = $("#LUnotesList .rowCrop").prop("checked");
@@ -2007,7 +2413,16 @@ Yang: 2016.08.31: warren want to change it back to always local stretch */
 				var selection = $("td.landCoverInput.active").text();
 				
 				vertInfo[thisOne].landCover.landCover = selection;			
-							
+				
+				//non checkbox 
+				//vertInfo[thisOne].landCover.other.trees = $("#trees").hasClass("selected")
+				//vertInfo[thisOne].landCover.other.shrubs = $("#shrubs").hasClass("selected")
+				//vertInfo[thisOne].landCover.other.grassForbHerb = $("#grassForbHerb").hasClass("selected")
+				//vertInfo[thisOne].landCover.other.impervious = $("#impervious").hasClass("selected")
+				//vertInfo[thisOne].landCover.other.naturalBarren = $("#naturalBarren").hasClass("selected")
+				//vertInfo[thisOne].landCover.other.snowIce = $("#snowIce").hasClass("selected")
+				//vertInfo[thisOne].landCover.other.water = $("#water").hasClass("selected")
+				
 				//checkbox
 				vertInfo[thisOne].landCover.other.trees = $("#trees").prop("checked");
 				vertInfo[thisOne].landCover.other.shrubs = $("#shrubs").prop("checked");
@@ -2016,6 +2431,15 @@ Yang: 2016.08.31: warren want to change it back to always local stretch */
 				vertInfo[thisOne].landCover.other.naturalBarren = $("#naturalBarren").prop("checked");
 				vertInfo[thisOne].landCover.other.snowIce = $("#snowIce").prop("checked");
 				vertInfo[thisOne].landCover.other.water = $("#water").prop("checked");
+				
+
+				//fillInNotes("#LCnotesList .selected",thisOne,"trees","landCover");
+				//fillInNotes("#LCnotesList .selected",thisOne,"shrubs","landCover");
+				//fillInNotes("#LCnotesList .selected",thisOne,"grassForbHerb","landCover");
+				//fillInNotes("#LCnotesList .selected",thisOne,"impervious","landCover");
+				//fillInNotes("#LCnotesList .selected",thisOne,"naturalBarren","landCover");
+				//fillInNotes("#LCnotesList .selected",thisOne,"snowIce","landCover");
+				//fillInNotes("#LCnotesList .selected",thisOne,"water","landCover");
 				
 				$("#LCnotesList .selected").removeClass("selected");
 			}				
@@ -2125,6 +2549,73 @@ Yang: 2016.08.31: warren want to change it back to always local stretch */
 				$(".segment").remove(); //empty the current segment form
 				$(".vertex").remove(); //empty the current vertex form
 				fillInForm(); //append new forms and fill them in from the altered vertInfo array
+
+				
+				
+				//vertInfo = [];
+				//var yearStart = 0,
+				//	yearEnd = 0,
+				//	len = selectedCircles.length,
+				//	startIndex = 0,
+				//	endIndex = 0,
+				//	i = 0;
+				
+				//make empty segment entries in the form
+				//for(i; i < len-1; i++){
+				//	startIndex = selectedCircles[i];
+				//	endIndex = selectedCircles[i+1];
+				//	yearStart = data.Values[startIndex].Year; //years[startIndex]  
+				//	yearEnd =   data.Values[endIndex].Year; //years[endIndex];
+				//	$("#segmentsFormTbl").append('<tr class="segment"><td class="highlightIt"><span class="glyphicon glyphicon-search"></span></td><td>'+yearStart+'</td><td>'+yearEnd+'</td><td class="changeProcessInput formDrop"></td></tr>');
+				//}
+				
+				//make empty vertex entries
+				//for(i=0; i < len; i++){
+				//	startIndex = selectedCircles[i];
+				//	yearStart = data.Values[startIndex].Year //years[startIndex];
+				//	$("#verticesFormTbl").append('<tr class="vertex"><td class="highlightIt"><span class="glyphicon glyphicon-search"></span></td><td>'+yearStart+'</td><td class="landUseInput formDrop lulc"></td><td class="landCoverInput formDrop lulc"></td></tr>');
+				//	vertInfo.push({
+				//		year:yearStart,
+				//		index:startIndex,
+				//		landUse:{
+				//			dominant:"",
+				//			notes:{
+				//				wetland:false,
+				//				mining:false,
+				//				rowCrop:false,
+				//				orchardTreeFarm:false,
+				//				vineyardsOtherWoody:false
+				//			}
+				//		
+				//		},
+				//		landCover:{
+				//			dominant:"",
+				//			other:{
+				//				trees:false,
+				//				shrubs:false,
+				//				grassForbHerb:false,
+				//				impervious:false,
+				//				naturalBarren:false,
+				//				snowIce:false,
+				//				water:false
+				//			}
+				//		},
+				//		changeProcess:{
+				//			changeProcess:"",
+				//			notes:{
+				//				natural:false,
+				//				prescribed:false,
+				//				sitePrepFire:false,
+				//				airphotoOnly:false,
+				//				clearcut:false,
+				//				thinning:false,
+				//				flooding:false,
+				//				reserviorLakeFlux:false,
+				//				wetlandDrainage:false
+				//			}
+				//		}
+				//	});					
+				//}
 			}	
 
 			
@@ -2144,6 +2635,34 @@ Yang: 2016.08.31: warren want to change it back to always local stretch */
 					width: (parseFloat(bottomWidth)+widthAdj+"px")
 				}).show();
 			}
+			
+			//fill in note check box status in the lineInfo object when the done button is pressed
+			//function fillInNotes(selector, thisOne, noteClass, inputType){
+			//	noteClassSelected = $(selector).hasClass(noteClass);
+			//	switch(inputType){
+			//		case "landUse":
+			//			if(noteClassSelected){
+			//				vertInfo[thisOne].landUse.primary.notes[noteClass] = true;
+			//			} else {
+			//				vertInfo[thisOne].landUse.primary.notes[noteClass] = false;
+			//			}	
+			//		break;
+			//		case "landCover":
+			//			if(noteClassSelected){
+			//				vertInfo[thisOne].landCover.other[noteClass] = true;
+			//			} else {
+			//				vertInfo[thisOne].landCover.other[noteClass] = false;
+			//			}						
+			//		break;
+			//		case "changeProcess":
+			//			if(noteClassSelected){
+			//				vertInfo[thisOne].changeProcess.notes[noteClass] = true;
+			//			} else {
+			//				vertInfo[thisOne].changeProcess.notes[noteClass] = false;
+			//			}
+			//		break;
+			//	}
+			//}
 			
 			//function to change the note icon depending on whether the note is selected or not
 			function changeNoteIcon(notesList, thisOne, inputType){
@@ -2195,6 +2714,16 @@ Yang: 2016.08.31: warren want to change it back to always local stretch */
 							//noteNull = vertInfo[thisOne].changeProcess.notes[noteClass];
 						break;
 					}
+
+					//noteNull = lineInfo.segments[thisOne].notes[noteClass];
+			//		if(noteNull == false){
+						//thisLi.prepend('<span class="glyphicon glyphicon-unchecked"></span> ') //theseLi.eq(i)
+			//		} else{
+						//thisLi.removeClass("disables");
+						//thisLi.prepend('<span class="glyphicon glyphicon-ok"></span> '); //theseLi.eq(i)
+						//thisLi.addClass("selected");
+			//		}
+				//});
 			}
 			
 			//turn highlighting off
@@ -2252,10 +2781,24 @@ Yang: 2016.08.31: warren want to change it back to always local stretch */
 					tdActive.removeClass("active");
 				}
 			}
-/////////////////////////////////////////////////////////////////////////////////////////		
+/////////////////////////////////////////////////////////////////////////////////////////
+			
+			
+			
+			
+			
+///////////////////////////////////////////////////////BELOW ARE CHIP SCRIPTS///////////////////////////////////////////////////////
+//////////////BELOW ARE CHIP SCRIPTS////////////////////////////////////////BELOW ARE CHIP SCRIPTS//////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////BELOW ARE CHIP SCRIPTS//////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////BELOW ARE CHIP SCRIPTS///////////////////////
+////////////////////////////BELOW ARE CHIP SCRIPTS//////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////BELOW ARE CHIP SCRIPTS/////////////////////////////////BELOW ARE CHIP SCRIPTS////
+		
 		
 
-///////////PLOT SIZE CHANGE///////////////////////////////////////////////////////////////////////////////			
+			///////////PLOT SIZE CHANGE///////////////////////////////////////////////////////////////////////////////			
 			$("#plotSize").change(function(){
 				var plotSizeObject = $("#plotSize"),
 					plotSize = parseInt(plotSizeObject.prop("value"));
@@ -2284,6 +2827,9 @@ Yang: 2016.08.31: warren want to change it back to always local stretch */
 				if ((chipstripwindow != null) && chipstripwindow.closed == false){					
 					chipstripwindow.postMessage(JSON.stringify(message),"*");	
 				}
+/* 				if ((expandedChipWindow != null) && expandedChipWindow.closed == false){
+					expandedChipWindow.postMessage(JSON.stringify(message),"*");	
+				} */
 			});
 						
 			///////////CHIP SIZE CHANGE///////////////////////////////////////////////////////////////////////////////
@@ -2311,6 +2857,9 @@ Yang: 2016.08.31: warren want to change it back to always local stretch */
 				if ((chipstripwindow != null) && chipstripwindow.closed == false){
 					chipstripwindow.postMessage(JSON.stringify(message),"*");	
 				}
+/* 				if ((expandedChipWindow != null) && expandedChipWindow.closed == false){
+					expandedChipWindow.postMessage(JSON.stringify(message),"*");	
+				} */
 				
 			});
 			
@@ -2329,7 +2878,10 @@ Yang: 2016.08.31: warren want to change it back to always local stretch */
 					//send the zoom array to the external window
 					if ((chipstripwindow != null) && chipstripwindow.closed == false){ 
 						chipstripwindow.postMessage(JSON.stringify(message),"*");
-					}					
+					}
+/* 					if ((expandedChipWindow != null) && expandedChipWindow.closed == false){
+						expandedChipWindow.postMessage(JSON.stringify(zoomInfo),"*");	
+					} */					
 			});
 			
 
@@ -2395,6 +2947,12 @@ Yang: 2016.08.31: warren want to change it back to always local stretch */
 						//var src = origData[i].url
 						var sensor = origData[i].sensor
 					}
+					//define/store some other info needed for zooming
+					//chipInfo.chipsInStrip.push(thisManyChips);
+					//chipInfo.useThisChip.push(useThisChip);
+					//chipInfo.year.push(year);
+					//chipInfo.julday.push(julday);
+					//chipInfo.src.push(src);	
 					
 					chipInfo.chipsInStrip[i] = 1 //thisManyChips;
 					chipInfo.useThisChip[i] = useThisChip;
@@ -2656,6 +3214,13 @@ Yang: 2016.08.31: warren want to change it back to always local stretch */
 				chipInfo.useThisChip[replaceThisChip] = pass_data.useThisChip;
 				chipInfo.syOrig[replaceThisChip] = (255*chipInfo.useThisChip[replaceThisChip])+chipDisplayProps.offset; // +chipInfo.offset   set/push the original source y offset to the syOrig array
 				chipInfo.syZoom[replaceThisChip] = chipInfo.syOrig[replaceThisChip]+sAdj[chipDisplayProps.zoomLevel];
+				//draw the chip - need to call updateZoom first since not running drawAllChips
+				//updateZoom() //don't need to run since the syZoom was updated a line up
+				
+				//thisImg.on("load",function(){
+				//	drawOneChip(replaceThisChip)
+				//}).attr("src",chipInfo.src[replaceThisChip]);
+				
 				
 				//thisImg.on("load",function(){
 				drawOneChip(replaceThisChip, "annual")	
@@ -2678,10 +3243,13 @@ Yang: 2016.08.31: warren want to change it back to always local stretch */
 				if(e.shiftKey){ //
 					e.preventDefault(); //make sure that default browser behaviour is prevented
 
+					//if(Math.abs(e.deltaY) <= 15) {return; } //{zoomIn = 1} else {zoomIn = 0}
+					//if(Math.abs(e.deltaY) < 1) {return; }
+					//if(e.deltaX <= -1 || e.deltaY >= 1){zoomIn = 1} else {zoomIn = 0}
 					var delta = e.deltaY;
-					if (window.navigator.platform==='Win32' && window.navigator.product==='Gecko') {
-						delta = e.deltaX;
-					}
+					// if (window.navigator.platform==='Win32' && window.navigator.product==='Gecko') {
+					// 	delta = e.deltaX;
+					// }
 	
 					if(delta > 0){
 						if (chipDisplayProps.zoomLevel < maxZoom & chipDisplayProps.zoomLevel < stopZoom){chipDisplayProps.zoomLevel++;}
@@ -2700,7 +3268,9 @@ Yang: 2016.08.31: warren want to change it back to always local stretch */
 						if ((chipstripwindow != null) && chipstripwindow.closed == false){
 							chipstripwindow.postMessage(JSON.stringify(message),"*");	
 						}
-
+/* 						if((expandedChipWindow != null) && expandedChipWindow.closed == false){
+							expandedChipWindow.postMessage(JSON.stringify(zoomInfo),"*");	
+						} */
 					} else if($(this).hasClass("intraAnnual")){
 						drawAllChips("intraAnnual"); //redraw the chips with the new zoom
 						originURL.postMessage(JSON.stringify(message),"*"); //originURL is defined in the intraAnnual window
@@ -2725,7 +3295,9 @@ Yang: 2016.08.31: warren want to change it back to always local stretch */
 					var thisImg = $(".expandChipYear").index(this);
 				}
 				
-
+				//if (e.ctrlKey) { 					
+					//var thisImg = (parseInt($(this).attr("id").replace( /^\D+/g, ''))); //extract the chip index
+					//var thisImg = $(".expandChipYear").index(this) //extract the chip index
 					var selectedColor = $("#selectedColor").prop("value");
 					var pass_data = {
 						"action":"add_chips", //hard assign
@@ -2759,8 +3331,57 @@ Yang: 2016.08.31: warren want to change it back to always local stretch */
 					} else {                                                         //else if the window is already loaded, just send the message - no need to wait
 						chipstripwindow.postMessage(JSON.stringify(pass_data),"*");
 					}
+				//}
 			});
 			
+			
+			///////////////////OPEN THE REMOTE CHIP STRIP WINDOW AND SEND MESSAGES/////////////////////
+/* 			var trajectoryWindow = null ;//keep track of whether the chipstrip window is open or not so it is not opened in multiple new window on each chip click
+			var innerWidth = window.innerWidth
+			$("body").on("click", "#expandTrajPlot", function(e){ //need to use body because the canvases have probably not loaded yet
+
+				var pass_data = {
+					"action":"add_trajectory", //hard assign
+					"data":data,
+					"allData":allData,
+					"specIndex":specIndex,
+					"domain":currentDomain,
+					"n_chips":n_chips,
+					"selectThese":selectThese,
+					"activeRedSpecIndex":activeRedSpecIndex,
+					"activeGreenSpecIndex":activeGreenSpecIndex,
+					"activeBlueSpecIndex":activeBlueSpecIndex
+				};
+				
+				if ((trajectoryWindow == null) || (trajectoryWindow.closed)){      //if the window is not loaded then load it and send the message after it is fully loaded
+					trajectoryWindow = window.open("./expanded_trajectory_plot.html","_blank","width="+innerWidth+"px, height=750px, toolbar=0, titlebar=0, menubar=0, scrollbars=yes"); //open the remote chip strip window
+					$(trajectoryWindow).load(function(){trajectoryWindow.postMessage(JSON.stringify(pass_data),"*");}); //wait until the remote window finishes loading before sending the message
+					} else {                                                         //else if the window is already loaded, just send the message - no need to wait
+					trajectoryWindow.postMessage(JSON.stringify(pass_data),"*");
+				}
+			}); */
+			
+			
+/* 			var expandedChipWindow = null;
+			$("#expandChipGallery").click(function(){
+
+				var selectedColor = $("#selectedColor").prop("value");
+				var pass_data = {
+					"action":"init_chips", //hard assign
+					"selectThese":selectedCircles, //selectThese, //"n_chips":"40", //get this from the img metadata
+					"chipInfo":chipInfo,
+					"n_chips":n_chips,
+					"chipDisplayProps":chipDisplayProps,
+					"selectedColor":selectedColor
+					
+				};
+				if ((expandedChipWindow == null) || (expandedChipWindow.closed)){      //if the window is not loaded then load it and send the message after it is fully loaded
+					expandedChipWindow = window.open("./expanded_chip_gallery.html","_blank","width=1080px, height=840px", "toolbar=0","titlebar=0","menubar=0","scrollbars=yes"); //open the remote chip strip window
+					$(expandedChipWindow).load(function(){expandedChipWindow.postMessage(JSON.stringify(pass_data),"*");}); //wait until the remote window finishes loading before sending the message
+				} else {                                                         //else if the window is already loaded, just send the message - no need to wait
+					expandedChipWindow.postMessage(JSON.stringify(pass_data),"*");
+				}
+			}); */
 			
 				
 			var doyCalWindow = null;
@@ -2769,6 +3390,15 @@ Yang: 2016.08.31: warren want to change it back to always local stretch */
 					doyCalWindow = window.open("./doy_calendar.html","_blank","width=900px, height=647px, toolbar=0, titlebar=0, menubar=0, scrollbars=yes"); //open the remote chip strip window
 				}
 			});
+			
+/* 			loads a page that contains the response design - taken care of with a pdf link right now (3/2/16)
+			var RDWindow = null;
+			$("#RDLi").click(function(){
+				if ((RDWindow == null) || (RDWindow.closed)){      //if the window is not loaded then load it and send the message after it is fully loaded
+					RDWindow = window.open("./response_design.html","_blank","width=900px, height=647px, toolbar=0, titlebar=0, menubar=0, scrollbars=1"); //open the remote chip strip window
+				}
+			}); */
+			
 			
 			//////////////////////////GET MESSAGES FROM REMOTE////////////////////////////////////////////
 			//receive messages from the origin window	
@@ -2853,3 +3483,36 @@ Yang: 2016.08.31: warren want to change it back to always local stretch */
 				tlctx.strokeRect(117.5-(chipDisplayProps.boxZoom/2), 117.5-(chipDisplayProps.boxZoom/2), chipDisplayProps.boxZoom, chipDisplayProps.boxZoom);
 				$("#tlDate").text(data.Values[timeLapseIndex].Year);
 			}
+			
+			
+			
+			
+			/////////////////////////LOAD THE CHIPS////////////////////////////////////////////////////////
+			//function to run functions that need all the elements to be loaded - also need to do them in order was the window is loaded
+			//var tlctx //global
+			//function start(){
+				//makeChipInfo("json"); //random
+				//drawAllChips();
+				
+				//tlImgID = document.getElementById("img0");
+			//	tlImgID = $(".chipImgSrc").eq(timeLapseIndex)[0]
+			//	console.log(tlImgID);
+			//	tlctx = tlCanvasID.getContext("2d")
+			//	tlctx.mozImageSmoothingEnabled = false;
+			//	tlctx.msImageSmoothingEnabled = false;
+			//	tlctx.imageSmoothingEnabled = false;
+			//	tlctx.drawImage(
+			//		tlImgID,
+			//		chipInfo.sxZoom[timeLapseIndex],
+			//		chipInfo.syZoom[timeLapseIndex],
+			//		chipInfo.sWidthZoom[timeLapseIndex],
+			//		chipInfo.sWidthZoom[timeLapseIndex],
+			//		0,0,235,235
+			//	);
+			//	tlctx.strokeStyle=chipDisplayProps.plotColor; //"#FF0000"
+			//	tlctx.lineWidth=1;
+			//	tlctx.lineCap = 'square';
+			//	tlctx.strokeRect(117.5-(chipDisplayProps.boxZoom/2), 117.5-(chipDisplayProps.boxZoom/2), chipDisplayProps.boxZoom, chipDisplayProps.boxZoom);
+			//	$("#tlDate").text(data.Values[timeLapseIndex].Year);
+			//	
+			//}
