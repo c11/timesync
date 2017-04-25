@@ -237,12 +237,16 @@ DOQ;
 	public function getUserTasks($interpreter, $role) {
 		$sql = <<<DOQ
 			SELECT projects.project_id, project_code, project_name,
-						 description, contact, tsa, user_id, plot_size
+						 description, contact, tsa, user_id, plot_size,
+						 group_concat(packet_id separator ',') as packet_ids
 			FROM projects, interpreter, project_interpreter
 			WHERE projects.project_id = project_interpreter.project_id
 			AND project_interpreter.interpreter = interpreter.user_id
 			AND interpreter.user_id = ?
             AND isactive = 1
+			GROUP BY projects.project_id, project_code, project_name,
+						 description, contact, tsa, user_id, plot_size
+			ORDER BY packet_id
 DOQ;
 
 		$sqlread = <<<DOQ

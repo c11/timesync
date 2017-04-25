@@ -127,10 +127,10 @@ $app->get('/project/:interpreter', $authentication($app), function($interpreter)
     exit;
 });
 
-$app->get('/plot/:interpreter/:project_id/:tsa', $authentication($app), function($interpreter, $project_id, $tsa) {
+$app->get('/plot/:interpreter/:project_id/:tsa/:packet', $authentication($app), function($interpreter, $project_id, $tsa, $packet) {
     $service = new PlotsService();
 
-    $plots = $service->getAllPlots($project_id, $tsa, $interpreter);
+    $plots = $service->getAllPlots($project_id, $tsa, $interpreter, $packet);
 
     header('Content-Type: application/json');
     echo json_encode($plots);
@@ -171,13 +171,11 @@ $app->get('/vertex/:interpreter/:project_id/:tsa/:plotid', $authentication($app)
 $app->post('/vertex/save', $authentication($app), function() use ($app) {
     $postvars = $app->request->post('vertInfoSave');
     $service = new VertexService();
-
-//    return json_encode('test');
-//
-//    exit;
+    
+    $data = json_decode($postvars);
 
     $result = '{"error": 1, "message": "no data provided"}';
-    if ($postvars) {
+    if ($postvars && $data->userID > 0) {
         $result = $service->saveVertices($postvars);
         $result = '{"error": 0, "message": "success"}';
     }
@@ -206,8 +204,9 @@ $app->post('/comment/save', $authentication($app), function() use ($app) {
 
     $result = '{"error": 1, "message": "no data provided"}';
 
-    if (!is_null($comment)) {
-        $result = $service->createComments($comment->projectID, $comment->tsa, $comment->plotID, $comment->userID, $comment->comment, $comment->isComplete);
+    #only save when user is not viewer
+    if (!is_null($comment) && $comment->userID > 0) {
+        $result = $service->createComments($comment->projectID, $comment->tsa, $comment->plotID, $comment->userID, $comment->comment, $comment->isComplete, $comment->isExample);
         $result = '{"error": 0, "message": "success"}';
     }
 
@@ -243,7 +242,7 @@ $app->post('/image/override', $authentication($app), function() use ($app) {
 
     $result = '{"error": 1, "message": "no data provided"}';
 
-    if ($chipPreference) {
+    if ($chipPreference && $chipPreference->userID > 0) {
         $result = $service->overrideImagePreference($chipPreference->userID,
             $chipPreference->projectID,
             $chipPreference->tsa,

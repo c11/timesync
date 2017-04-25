@@ -22,7 +22,7 @@ class PlotsService extends BaseService {
 	 * @param int $interpreter
 	 * @return array
 	 */
-	public function getAllPlots($project_id, $tsa, $interpreter) {
+	public function getAllPlots($project_id, $tsa, $interpreter, $packet) {
 // 		 $sql =<<<DOQ
 // 			SELECT plots.project_id, plots.tsa, plots.plotid,
 // 				 x, y, lat, lng,
@@ -33,7 +33,7 @@ class PlotsService extends BaseService {
 // 			AND plots.tsa = plot_comments.tsa
 // DOQ;
 
-		 $sql =<<<DOQ
+		 $sql1 =<<<DOQ
 			SELECT plots.project_id, plots.tsa, plots.plotid,
 				 lat, lng,
 				 is_complete, is_example
@@ -41,14 +41,31 @@ class PlotsService extends BaseService {
 			ON plots.plotid = plot_comments.plotid
 			AND plots.project_id = plot_comments.project_id
 			AND plots.tsa = plot_comments.tsa
+			AND plot_comments.interpreter = $interpreter
+			WHERE plots.project_id=$project_id AND plots.tsa=$tsa
 DOQ;
 
-		//super user and viewer can get other's interpretation
-		// if ($interpreter>5 && $interpreter!=9999) {
-			$sql = $sql . "	AND plot_comments.interpreter = $interpreter ";
-		// }
+		 $sql2 =<<<DOQ
+			SELECT plots.project_id, plots.tsa, plots.plotid,
+				lat, lng,
+				is_complete, is_example
+			FROM plots inner join project_packet
+			on plots.project_id = project_packet.project_id
+			and plots.plotid = project_packet.plotid
+			left outer join plot_comments
+			ON plots.plotid = plot_comments.plotid
+			AND plots.project_id = plot_comments.project_id
+			AND plots.tsa = plot_comments.tsa
+			AND plot_comments.interpreter = $interpreter
+			WHERE plots.tsa = $tsa
+			and plots.project_id = $project_id
+			and project_packet.packet_id = $packet
+DOQ;
 
-		$sql = $sql . "	WHERE plots.project_id=$project_id AND plots.tsa=$tsa";
+		$sql = $sql1;
+		if ($packet >= 0) {
+			$sql = $sql2;
+		}
 
 		$this->connect();
 		$stmt = mysqli_prepare($this->connection, $sql);
