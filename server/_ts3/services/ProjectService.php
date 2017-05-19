@@ -282,7 +282,8 @@ DOQ;
 														$row->contact,
 														$row->tsa,
 														$row->user_id,
-														$row->plot_size
+														$row->plot_size,
+														$row->packet_ids
 														);
 
 	  while (mysqli_stmt_fetch($stmt)) {
@@ -296,7 +297,8 @@ DOQ;
 														$row->contact,
 														$row->tsa,
 														$row->user_id,
-														$row->plot_size
+														$row->plot_size,
+														$row->packet_ids
 														);
 	  }
 
